@@ -6,23 +6,66 @@
 <title>晏 · 晚 | YanEvening</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #0f2027, #203a43, #2c5364); color: #e8e8e8; font-family: "PingFang SC", "Microsoft YaHei", serif; text-align: center; padding: 24px; }
-  .card { max-width: 560px; }
-  h1 { font-size: 64px; font-weight: 300; letter-spacing: 24px; margin-bottom: 16px; text-indent: 24px; }
-  .en { font-size: 15px; letter-spacing: 8px; text-transform: uppercase; color: #9fb3c8; margin-bottom: 32px; text-indent: 8px; }
-  p { font-size: 16px; line-height: 2; color: #c9d6e3; font-weight: 300; }
-  .divider { width: 48px; height: 1px; background: #9fb3c8; margin: 32px auto; opacity: .6; }
-  footer { margin-top: 48px; font-size: 12px; color: #6b7f93; letter-spacing: 2px; }
+  html, body { height: 100%; }
+  body { background: #07070d; color: #ece7d9; font-family: "Songti SC", "STSong", "SimSun", serif; overflow-x: hidden; min-height: 100vh; }
+  #stars { position: fixed; inset: 0; z-index: 0; }
+  .glow { position: fixed; border-radius: 50%; filter: blur(120px); z-index: 0; pointer-events: none; opacity: .5; animation: drift 14s ease-in-out infinite alternate; }
+  .glow.g1 { width: 520px; height: 520px; left: -160px; top: -120px; background: radial-gradient(circle, rgba(212,175,55,.28), transparent 70%); }
+  .glow.g2 { width: 620px; height: 620px; right: -200px; bottom: -160px; background: radial-gradient(circle, rgba(64,90,160,.30), transparent 70%); animation-delay: -7s; }
+  @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(60px,40px) scale(1.12); } }
+  main { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 48px 24px; }
+  .kicker { font-size: 13px; letter-spacing: 10px; text-indent: 10px; color: #d4af37; margin-bottom: 28px; animation: fadeUp 1s ease both; }
+  h1 { font-size: clamp(72px, 14vw, 148px); font-weight: 400; letter-spacing: 32px; text-indent: 32px; background: linear-gradient(180deg, #f7e7b0 0%, #d4af37 45%, #9a7b2d 75%, #e9d189 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 80px rgba(212,175,55,.25); animation: fadeUp 1s .15s ease both; line-height: 1.15; }
+  .en { margin-top: 20px; font-size: 15px; letter-spacing: 12px; text-indent: 12px; color: #8f96a8; text-transform: uppercase; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; animation: fadeUp 1s .3s ease both; }
+  .rule { width: 72px; height: 1px; margin: 44px auto; background: linear-gradient(90deg, transparent, #d4af37, transparent); animation: fadeUp 1s .45s ease both; }
+  .verse p { font-size: clamp(16px, 3.4vw, 20px); line-height: 2.4; color: #c9c2ae; font-weight: 300; animation: fadeUp 1s .6s ease both; }
+  .verse p + p { animation-delay: .75s; }
+  .cards { display: flex; gap: 18px; margin-top: 56px; flex-wrap: wrap; justify-content: center; animation: fadeUp 1s .9s ease both; }
+  .card { width: 200px; padding: 26px 18px; border: 1px solid rgba(212,175,55,.28); border-radius: 14px; background: rgba(255,255,255,.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: transform .35s ease, border-color .35s ease, box-shadow .35s ease; }
+  .card:hover { transform: translateY(-6px); border-color: rgba(212,175,55,.65); box-shadow: 0 18px 44px rgba(0,0,0,.5), 0 0 24px rgba(212,175,55,.12); }
+  .card .t { font-size: 26px; color: #e9d189; margin-bottom: 10px; }
+  .card .d { font-size: 13px; line-height: 1.9; color: #9aa0b4; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  footer { margin-top: 64px; font-size: 12px; letter-spacing: 4px; color: #5d6376; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; animation: fadeUp 1s 1.05s ease both; }
+  footer a { color: #9a8c5a; text-decoration: none; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 560px) { h1 { letter-spacing: 18px; text-indent: 18px; } .card { width: 100%; max-width: 320px; } }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>晏晚</h1>
-    <div class="en">YanEvening</div>
-    <div class="divider"></div>
-    <p>晏（yàn），天清日明之意。<br>晚（wǎn），日暮夜至之时。</p>
-    <p>一晏一晚，一日一夜。</p>
-    <footer>yanevening.github.io</footer>
+<canvas id="stars"></canvas>
+<div class="glow g1"></div>
+<div class="glow g2"></div>
+<main>
+  <div class="kicker">山 水 有 相 逢</div>
+  <h1>晏晚</h1>
+  <div class="en">YanEvening</div>
+  <div class="rule"></div>
+  <div class="verse">
+    <p>晏（yàn）——天清日明，温润而泽。</p>
+    <p>晚（wǎn）——日暮夜至，静水流深。</p>
+    <p>一晏一晚，一日一夜，一生一世。</p>
   </div>
+  <div class="cards">
+    <div class="card"><div class="t">晏</div><div class="d">yàn<br>天清 · 日明<br>温润如玉</div></div>
+    <div class="card"><div class="t">晚</div><div class="d">wǎn<br>日暮 · 夜至<br>静水流深</div></div>
+  </div>
+  <footer><a href="https://yanevening.github.io">yanevening.github.io</a> · 晏晚长安</footer>
+</main>
+<script>
+(function () {
+  var c = document.getElementById('stars'), x = c.getContext('2d'), stars = [];
+  function resize() {
+    c.width = innerWidth; c.height = innerHeight; stars = [];
+    var n = Math.min(220, Math.floor(innerWidth * innerHeight / 9000));
+    for (var i = 0; i < n; i++) stars.push({ x: Math.random()*c.width, y: Math.random()*c.height, r: Math.random()*1.4+.3, s: Math.random()*.35+.08, o: Math.random()*.5+.25, tw: Math.random()*Math.PI*2 });
+  }
+  resize(); addEventListener('resize', resize);
+  (function tick() {
+    x.clearRect(0,0,c.width,c.height);
+    for (var i=0;i<stars.length;i++){ var s=stars[i]; s.y+=s.s; s.tw+=.02; if(s.y>c.height){s.y=0;s.x=Math.random()*c.width;} var a=s.o*(0.6+0.4*Math.sin(s.tw)); x.beginPath(); x.arc(s.x,s.y,s.r,0,7); x.fillStyle='rgba(233,209,137,'+a.toFixed(3)+')'; x.fill(); }
+    requestAnimationFrame(tick);
+  })();
+})();
+</script>
 </body>
 </html>
