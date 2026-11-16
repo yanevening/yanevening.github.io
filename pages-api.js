@@ -75,32 +75,45 @@ function startRun(detail) {
   }
   runs.set(submissionId, { submission })
 
-  void fetch("https://wandbox.org/api/compile.json", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ compiler: "openjdk-jdk-21+35", code: program, stdin, save: false }),
+  void fetch("https://godbolt.org/api/compiler/java2102/compile", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      // Compiler Explorer calls its primary file example.java. Compile the
+      // user's program separately so public class Main stays in Main.java.
+      source: "class PtaPracticeEntry { public static void main(String[] args) throws Throwable { Main.main(args); } }",
+      files: [{ filename: "Main.java", contents: program }],
+      options: {
+        userArguments: "Main.java",
+        executeParameters: { stdin },
+        filters: { execute: true },
+      },
+    }),
     signal: AbortSignal.timeout(45000),
   }).then(async response => {
     if (response.status === 429) throw new Error("评测请求过多，请稍后重试")
     if (!response.ok) throw new Error("在线评测服务暂不可用")
     const result = await response.json()
-    const compilerLog = result.compiler_message || ""
-    if (/OCI runtime error|Resource temporarily unavailable|Internal Server Error/i.test(compilerLog)) {
-      throw new Error("在线评测服务暂不可用，请稍后重试")
+    if (!Number.isInteger(result.code) || result.code < 0) {
+      throw new Error("在线评测服务未返回有效结果，请稍后重试")
     }
-    if (!/^\d+$/.test(result.status ?? "") && !result.signal) {
-      throw new Error("评测服务未返回有效结果，请稍后重试")
-    }
-    const compileError = Boolean(result.compiler_error) && Number(result.status) !== 0
+    const run = result.execResult
+    const build = run?.buildResult || result
+    const compileError = build.code !== 0
+    const lines = entries => (entries || []).map(entry => entry.text).join("\n")
+    if (!compileError && !run?.didExecute) throw new Error("在线评测服务未执行代码，请稍后重试")
+    if (run?.truncated) throw new Error("程序输出超过评测服务限制")
     submission.status = compileError ? "COMPILE_ERROR" : "NEUTRAL"
     submission.judgeAt = new Date().toISOString()
     submission.judgeResponseContents = [{
       status: submission.status,
       programmingJudgeResponseContent: {
-        compilationResult: { success: !compileError, log: compilerLog },
+        compilationResult: { success: !compileError, log: lines(build.stderr) },
         testcaseJudgeResults: compileError ? {} : { custom: {
-          stdout: result.program_output || "", stderr: result.program_error || "",
-          exitcode: result.signal ? null : Number(result.status),
-          exceed: /(?:cpu )?time limit/i.test(result.signal || "") ? "TIME_LIMIT_EXCEEDED" : "UNKNOWN_TESTCASE_EXCEED",
+          stdout: lines(run.stdout), stderr: lines(run.stderr),
+          exitcode: Number.isInteger(run.code) ? run.code : null,
+          time: typeof run.execTime === "number" ? run.execTime / 1000 : undefined,
+          exceed: run.timedOut ? "TIME_LIMIT_EXCEEDED" : "UNKNOWN_TESTCASE_EXCEED",
         } },
       },
     }]
