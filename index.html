@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PTA 刷题</title>
+<link rel="stylesheet" href="/style.css">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+</head>
+<body>
+
+<!-- 图标 sprite：对应线上 #pat-* -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="pat-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="pat-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="pat-gear" viewBox="0 0 24 24"><path d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5zm8.4 5.1l1.7 1.3-1.7 3-2-.7a7.6 7.6 0 0 1-1.8 1l-.3 2.1h-3.5l-.4-2.1a7.6 7.6 0 0 1-1.8-1l-2 .7-1.7-3 1.7-1.3a7.9 7.9 0 0 1 0-2.1L3.5 10l1.7-3 2 .7a7.6 7.6 0 0 1 1.8-1l.4-2.1h3.5l.3 2.1a7.6 7.6 0 0 1 1.8 1l2-.7 1.7 3-1.7 1.3a7.9 7.9 0 0 1 0 2.1z"/></symbol>
+  <symbol id="pat-question" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.1 15.6a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6zm1.7-5.1c-.7.5-.9.9-.9 1.6h-1.9c0-1.3.4-2 1.4-2.7.8-.6 1.1-.9 1.1-1.6 0-.7-.6-1.2-1.4-1.2-.9 0-1.5.5-1.6 1.4H8.6C8.7 8 9.9 7 12 7c2 0 3.4 1.1 3.4 2.8 0 1.1-.5 1.9-1.6 2.7z"/></symbol>
+  <symbol id="pat-data-server" viewBox="0 0 24 24"><path d="M4 4h16v6H4V4zm0 10h16v6H4v-6zm3-7h2v1H7V7zm0 10h2v1H7v-1z" /></symbol>
+  <symbol id="pat-bug" viewBox="0 0 24 24"><path d="M14 4h-4l1 3h2l1-3zM7 9h10a5 5 0 0 1 0 10H7A5 5 0 0 1 7 9zm-3 .5h2v2H4v-2zm16 0h2v2h-2v-2zM4 14h2v2H4v-2zm16 0h2v2h-2v-2zM6 18l-2 2 1.4 1.4L7.5 19.3 6 18zm12 0-1.5 1.3 2.1 2.1L20 20l-2-2z"/></symbol>
+  <symbol id="pat-fullscreen" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4zm11-5h5v5h-2V6h-3V4zM4 15h2v3h3v2H4v-5zm14 0h2v5h-5v-2h3v-3z"/></symbol>
+  <symbol id="pat-info" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
+</svg>
+
+<div id="exam-app">
+  <header class="topbar">
+    <a id="nav-home" class="practice-brand" href="/"><span class="practice-logo" aria-hidden="true">P</span>PTA 刷题</a>
+    <span class="ps-name" id="ps-name"></span>
+    <nav class="practice-menu" aria-label="主导航">
+      <a id="nav-problems" href="/?page=problems">题库管理</a>
+      <a id="nav-submissions" href="/?page=submissions">提交记录</a>
+      <a id="nav-rankings" href="/?page=rankings">排名</a>
+    </nav>
+  </header>
+
+  <main id="page-view" class="exam-page" hidden>
+    <div class="exam-page-content">
+      <header class="exam-page-header">
+        <h1 id="page-title"></h1>
+        <button class="btn primary" id="btn-import-problems" hidden>导入题库</button>
+      </header>
+      <p id="page-status" role="status"></p>
+      <div id="page-body"></div>
+    </div>
+  </main>
+  <main id="answer-view" hidden>
+    <section id="program-answer-progress" class="answer-progress" aria-live="polite"></section>
+    <div class="titlebar">
+      <button class="btn ghost" id="btn-prev-problem" disabled><svg class="icon"><use href="#pat-left"/></svg>上一题</button>
+      <button class="btn ghost" id="btn-next-problem" disabled><svg class="icon"><use href="#pat-right"/></svg>下一题</button>
+      <h1 id="problem-title">7-1 求一组数组中的平均数</h1>
+      <div class="actions">
+        <button class="btn ghost" id="btn-fullscreen">全屏浏览</button>
+        <button class="btn ghost" id="btn-layout">切换布局</button>
+      </div>
+    </div>
+
+    <div class="split" id="split">
+      <section class="pane problem-pane">
+        <div class="problem-head">题目描述</div>
+        <article class="problem-body" id="problem-body"></article>
+      </section>
+
+      <div class="separator" id="separator" role="separator" aria-orientation="vertical"></div>
+
+      <section class="pane answer-pane" id="answer-pane">
+        <div class="answer-input">
+          <div class="toolbar">
+            <div class="select" id="compiler-select">
+              <button class="select-btn" id="compiler-btn">
+                <span id="compiler-label">Java (javac)</span><span>▾</span>
+              </button>
+              <div class="select-menu" id="compiler-menu"></div>
+            </div>
+            <div class="tb-right">
+              <button class="tb-btn" id="btn-settings" title="编辑器设置"><svg class="icon"><use href="#pat-gear"/></svg></button>
+              <button class="tb-btn" id="btn-compiler-info" title="编译器信息"><svg class="icon"><use href="#pat-question"/></svg></button>
+              <button class="tb-btn" id="btn-save-draft" title="手动保存草稿"><svg class="icon"><use href="#pat-data-server"/></svg></button>
+              <button class="tb-btn" id="btn-toggle-test" data-e2e="toggle-custom-test-area-btn" title="显示/隐藏测试用例"><svg class="icon"><use href="#pat-bug"/></svg></button>
+              <button class="tb-btn" id="btn-editor-fullscreen" title="全屏"><svg class="icon"><use href="#pat-fullscreen"/></svg></button>
+            </div>
+          </div>
+
+          <div class="editor-host" data-e2e="code-editor-input">
+            <div class="codeEditor" id="editor"></div>
+          </div>
+
+          <div class="test-panel" id="test-panel" hidden>
+            <div class="test-head">
+              <b>测试用例</b>
+              <label id="test-sample-picker" hidden>公开样例 <select id="test-sample"></select></label>
+            </div>
+            <div class="test-body">
+              <textarea id="test-input" placeholder="输入测试用例..."></textarea>
+              <div class="test-actions">
+                <button class="btn ghost" id="btn-reset-test">重置测试用例</button>
+              </div>
+              <div class="metrics" id="test-metrics"></div>
+              <div class="result-grid" id="test-result"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="submitbar">
+          <span id="sample-only-note" hidden>运行时会将代码和输入发送给 Wandbox。</span>
+          <button class="btn primary" id="btn-run-test">▶ 运行测试</button>
+          <button class="btn" id="btn-last">查看上次提交</button>
+          <button class="btn primary" id="btn-submit">提交本题作答</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="modal-mask" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <header><span id="modal-title">标题</span><button class="btn ghost" id="modal-close" aria-label="关闭弹窗">✕</button></header>
+    <div class="body" id="modal-body" data-e2e="modal-body"></div>
+  </div>
+</div>
+<aside class="compiler-output-float" id="compiler-output-float" aria-labelledby="compiler-output-title" hidden>
+  <header id="compiler-output-handle" title="拖动标题栏移动悬浮窗">
+    <h2 id="compiler-output-title">编译器输出</h2>
+    <button class="btn ghost" id="btn-toggle-compiler-output" type="button" aria-expanded="true" aria-controls="compiler-output-log">收起</button>
+    <button class="btn ghost" id="btn-dismiss-compiler-output" type="button" aria-label="关闭编译器输出">✕</button>
+  </header>
+  <pre id="compiler-output-log" tabindex="0"></pre>
+</aside>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
