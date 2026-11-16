@@ -5,6 +5,34 @@ const compareLabels = new Intl.Collator("zh-CN", { numeric: true })
 const runs = new Map()
 let bankRequest
 
+function javaCompilerLog(entries = []) {
+  const output = []
+  const hidden = { error: 0, warning: 0 }
+  let launcherDiagnostic = false
+  for (const { text, tag } of entries) {
+    const total = /^(\d+) (error|warning)s?$/.exec(text)
+    if (total) {
+      const kind = total[2]
+      const count = Number(total[1]) - hidden[kind]
+      if (count > 0) output.push(`${count} ${kind}${count === 1 ? "" : "s"}`)
+      continue
+    }
+    const diagnostic = /^(.*?):\d+(?::\d+)?: (error|warning):/.exec(text)
+    if (diagnostic) {
+      launcherDiagnostic = tag?.file === "example.java" ||
+        ["<source>", "example.java", "./example.java"].includes(diagnostic[1])
+      if (launcherDiagnostic) hidden[diagnostic[2]] += 1
+    } else if (/^(?:error|warning|Note):/.test(text)) {
+      launcherDiagnostic = false
+    }
+    if (!launcherDiagnostic) {
+      output.push(text.replace(/^\.\/Main\.java(?=:\d+:)/, "Main.java"))
+    }
+  }
+  if (!output.length && hidden.error) return "请在 Main.java 中定义 Main 类和 public static void main(String[] args)。"
+  return output.join("\n")
+}
+
 function read(key, fallback) {
   try { return JSON.parse(localStorage.getItem(storagePrefix + key)) ?? fallback }
   catch { return fallback }
@@ -108,7 +136,7 @@ function startRun(detail) {
     submission.judgeResponseContents = [{
       status: submission.status,
       programmingJudgeResponseContent: {
-        compilationResult: { success: !compileError, log: lines(build.stderr) },
+        compilationResult: { success: !compileError, log: javaCompilerLog(build.stderr) },
         testcaseJudgeResults: compileError ? {} : { custom: {
           stdout: lines(run.stdout), stderr: lines(run.stderr),
           exitcode: Number.isInteger(run.code) ? run.code : null,
