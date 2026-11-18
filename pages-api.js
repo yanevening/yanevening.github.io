@@ -113,7 +113,18 @@ function startRun(detail) {
       files: [{ filename: "Main.java", contents: program }],
       options: {
         userArguments: "Main.java",
-        executeParameters: { stdin },
+        executeParameters: {
+          stdin,
+          // Java's console streams follow the process locale, even when its
+          // default charset and source-file encoding are already UTF-8.
+          runtimeTools: [{
+            name: "env",
+            options: [
+              { name: "LANG", value: "C.UTF-8" },
+              { name: "LC_ALL", value: "C.UTF-8" },
+            ],
+          }],
+        },
         filters: { execute: true },
       },
     }),
