@@ -62,8 +62,9 @@ async function questions() {
     .sort((a, b) => (a.bankOrder ?? 0) - (b.bankOrder ?? 0) || compareLabels.compare(a.label, b.label))
 }
 
-function summary({ id, label, title, type, score, sampleOnly }) {
-  return { id, label, title, type, score, sampleOnly }
+function summary({ id, label, title, type, score, sampleOnly, chapter, content, blocks }) {
+  const searchable = blocks?.map(block => block.text || block.alt || "").join(" ") || content || ""
+  return { id, label, title, type, score, sampleOnly, chapter, searchable }
 }
 
 function importedQuestion(item) {

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PTA 刷题</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=practice-20261118">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 </head>
 <body>
@@ -49,6 +49,7 @@
       <button class="btn ghost" id="btn-next-problem" disabled><svg class="icon"><use href="#pat-right"/></svg>下一题</button>
       <h1 id="problem-title">7-1 求一组数组中的平均数</h1>
       <div class="actions">
+        <a class="btn ghost" id="back-to-filter" hidden>返回筛选</a>
         <button class="btn ghost" id="btn-fullscreen">全屏浏览</button>
         <button class="btn ghost" id="btn-layout">切换布局</button>
       </div>
@@ -90,11 +91,15 @@
               <label id="test-sample-picker" hidden>公开样例 <select id="test-sample"></select></label>
             </div>
             <div class="test-body">
-              <textarea id="test-input" placeholder="输入测试用例..."></textarea>
+              <textarea id="test-input" aria-label="测试输入" placeholder="输入测试用例..."></textarea>
+              <label class="test-expected-toggle"><input id="test-check-output" type="checkbox" aria-controls="test-expected-field"> 自定义预期输出</label>
+              <label id="test-expected-field" class="test-expected-field" hidden>预期输出（可留空）
+                <textarea id="test-expected-output" rows="2"></textarea>
+              </label>
               <div class="test-actions">
                 <button class="btn ghost" id="btn-reset-test">重置测试用例</button>
               </div>
-              <div class="metrics" id="test-metrics"></div>
+              <div class="metrics" id="test-metrics" role="status"></div>
               <div class="result-grid" id="test-result"></div>
             </div>
           </div>
@@ -102,6 +107,7 @@
 
         <div class="submitbar">
           <span id="sample-only-note" hidden>运行时会将 Java 代码和输入发送给 Compiler Explorer。</span>
+          <button class="btn" id="btn-run-all-tests" type="button" hidden>运行全部公开样例</button>
           <button class="btn primary" id="btn-run-test">▶ 运行测试</button>
           <button class="btn" id="btn-last">查看上次提交</button>
           <button class="btn primary" id="btn-submit">提交本题作答</button>
@@ -127,6 +133,6 @@
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="/app.js"></script>
+<script type="module" src="/app.js?v=practice-20261118"></script>
 </body>
 </html>

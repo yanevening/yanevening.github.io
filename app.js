@@ -1,4 +1,4 @@
-import { api } from "./pages-api.js"
+import { api } from "./pages-api.js?v=practice-20261118"
 // PTA 复刻版前端逻辑：对齐线上 exam-app 的请求序列与轮询节奏。
 import { createEditor, setLanguage, setFontSize, setTabSize,
          getText, focusEditor } from "./vendor/cm.js"
@@ -191,6 +191,7 @@ function renderProblem(psp) {
     <h2>${escapeHtml(psp.title)}</h2>
     ${psp.chapter ? `<p class="review-note">${escapeHtml(psp.chapter)}</p>` : ""}
     ${psp.blocks?.length ? renderQuestionBlocks(psp.blocks) : `<div style="white-space:pre-wrap">${escapeHtml(head.trim())}</div>${samplesHtml}`}
+    ${renderPracticeHints(psp.hints)}
     <div class="metas">
       ${psp.score != null ? `<div><b>分数</b>${psp.score}</div>` : ""}
       ${psp.author ? `<div><b>作者</b>${escapeHtml(psp.author)}</div>` : ""}
@@ -199,6 +200,16 @@ function renderProblem(psp) {
       <div><b>内存限制</b>${Math.round(cfg.memoryLimit / 1024)} MB</div>
       <div><b>栈限制</b>${cfg.stackSizeLimit} KB</div>
     </div>`
+}
+
+function renderPracticeHints(hints) {
+  if (!hints?.length) return ""
+  const [idea, check] = hints
+  return `<details class="program-hints">
+    <summary>解题提示</summary>
+    <p>${escapeHtml(idea)}</p>
+    ${check ? `<details><summary>边界与易错点</summary><p>${escapeHtml(check)}</p></details>` : ""}
+  </details>`
 }
 
 function renderCompilers(list) {
@@ -229,7 +240,8 @@ function initEditor(docText) {
 function cacheLocal() {
   if (!state.view) return
   const payload = { program: getText(state.view), compiler: state.compiler,
-                    testData: state.testData, saveAt: new Date().toISOString() }
+                    testData: state.testData, saveAt: new Date().toISOString(),
+                    customExpected: $("test-check-output").checked, expectedOutput: $("test-expected-output").value }
   try { localStorage.setItem(cacheKey(), JSON.stringify(payload)) } catch {}
 }
 
@@ -308,45 +320,29 @@ function exampleCases() {
   return cfg.exampleTestDatas || []
 }
 
-function renderTestResult(sub) {
-  const out = $("test-result")
-  const metrics = $("test-metrics")
-  if (!sub) { out.innerHTML = ""; metrics.textContent = ""; return }
-  const jr = (sub.judgeResponseContents || [])[0]
-  const comp = jr && jr.programmingJudgeResponseContent
-  if (sub.status === "COMPILE_ERROR" || (comp && comp.compilationResult && !comp.compilationResult.success)) {
-    const log = comp ? comp.compilationResult.log || comp.compilationResult.error : ""
-    metrics.innerHTML = `<span class="status-pill fail">编译错误</span>`
-    out.className = "result-grid one"
-    out.innerHTML = `<div class="result-box"><h4>编译日志</h4><pre>${escapeHtml(log)}</pre></div>`
-    return
-  }
-  const tc = (comp && comp.testcaseJudgeResults && comp.testcaseJudgeResults.custom) || {}
-  const stdout = tc.stdout || ""
-  const stderr = tc.stderr || ""
-  const examples = exampleCases()
-  const hit = examples.find(e => (e.input || "").trim() === (state.testData || "").trim())
-  const expected = hit ? (hit.output || "").trim() : null
-  const same = expected !== null && normalize(stdout) === normalize(expected)
-
-  // 真实判题机正常结束也会带 exceed="UNKNOWN_TESTCASE_EXCEED"，只有具体超限才算失败
-  const exceeded = tc.exceed && tc.exceed !== "UNKNOWN_TESTCASE_EXCEED"
-  const seconds = typeof tc.time === "number" ? tc.time.toFixed(3) : (tc.time ?? "—")
-  metrics.innerHTML =
-    `<span class="status-pill ${exceeded ? "fail" : "pass"}">${exceeded ? "超时/超限" : "运行结束"}</span>` +
-    `<span>耗时 ${seconds} s</span>` +
-    `<span>内存 ${tc.memory ? (tc.memory / 1048576).toFixed(1) + " MB" : "—"}</span>` +
-    `<span>退出码 ${tc.exitcode ?? "—"}</span>`
-
-  out.className = expected !== null ? "result-grid" : "result-grid one"
-  out.innerHTML = `
-    <div class="result-box"><h4>运行结果${expected !== null ? (same ? "（与预期一致）" : "（与预期不一致）") : ""}</h4><pre>${escapeHtml(stdout) || "&lt;无输出&gt;"}</pre></div>
-    ${expected !== null ? `<div class="result-box"><h4>预期结果</h4><pre>${escapeHtml(expected)}</pre></div>` : ""}
-    ${stderr ? `<div class="result-box" style="grid-column:1/-1"><h4>stderr</h4><pre>${escapeHtml(stderr)}</pre></div>` : ""}`
-}
-
 function normalize(s) {
   return String(s || "").replace(/\r\n/g, "\n").split("\n").map(l => l.replace(/\s+$/, "")).join("\n").trim()
+}
+
+function matchingSample(input) {
+  const normalizeNewlines = text => text.replace(/\r\n/g, "\n")
+  const samples = exampleCases()
+  const selected = Number($("test-sample").value || 0)
+  const matches = ({ input: sampleInput }) => normalizeNewlines(sampleInput) === normalizeNewlines(input)
+  return samples[selected] && matches(samples[selected]) ? selected : samples.findIndex(matches)
+}
+
+function sampleCase(sample, index) {
+  return { input: sample.input, expected: sample.output, index, name: "公开样例 " + (index + 1), public: true }
+}
+
+function currentTestCase() {
+  if ($("test-check-output").checked) {
+    return { input: state.testData, expected: $("test-expected-output").value, name: "自定义比较" }
+  }
+  const index = matchingSample(state.testData)
+  if (index >= 0) return sampleCase(exampleCases()[index], index)
+  return { input: state.testData, expected: null, name: "自定义输入" }
 }
 
 function setTestPanelOpen(open) {
@@ -357,48 +353,144 @@ function setTestPanelOpen(open) {
 function updateRunTestLabel() {
   const button = $("btn-run-test")
   if (button.disabled) return
-  const publicSample = state.psp.sampleOnly &&
-    exampleCases().some(item => (item.input || "").trim() === state.testData.trim())
-  button.textContent = publicSample ? "▶ 运行示例" : "▶ 运行测试"
+  button.textContent = currentTestCase().public ? "▶ 运行示例" : "▶ 运行测试"
 }
 
-async function runTest() {
-  const btn = $("btn-run-test")
-  if (btn.disabled) return
-  btn.disabled = true
-  btn.textContent = "运行中…"
+async function judgePracticeCase(test, detail) {
+  const payload = { ...detail, customTestData: { ...detail.customTestData, content: test.input } }
+  const { submissionId } = await api("POST", "/api/exams/" + EID + "/exam-submissions",
+    { problemType: "PROGRAMMING", details: [payload] })
+  const sub = await pollSubmission(submissionId)
+  const judge = sub?.judgeResponseContents?.[0]?.programmingJudgeResponseContent
+  const compilation = judge?.compilationResult
+  if (sub?.status === "COMPILE_ERROR" || compilation?.success === false) {
+    return { ...test, status: "COMPILE_ERROR", log: compilation?.log || compilation?.error || "" }
+  }
+  const run = judge?.testcaseJudgeResults?.custom
+  if (!run) throw new Error("未收到运行结果，请重试")
+  let status = "NEUTRAL"
+  if (run.exceed && run.exceed !== "UNKNOWN_TESTCASE_EXCEED") status = run.exceed
+  else if (run.exitcode !== 0) status = "RUNTIME_ERROR"
+  else if (test.expected !== null) {
+    const matched = normalize(run.stdout) === normalize(test.expected)
+    status = test.public
+      ? matched ? "SAMPLE_PASSED" : "SAMPLE_FAILED"
+      : matched ? "CUSTOM_PASSED" : "SAMPLE_FAILED"
+  }
+  return { ...test, status, run, log: compilation?.log || "" }
+}
+
+function practiceCaseBadge(status) {
+  const labels = { CUSTOM_PASSED: "与预期一致", NOT_RUN: "未运行", SERVICE_ERROR: "服务异常" }
+  const kind = ["NEUTRAL", "SAMPLE_PASSED", "CUSTOM_PASSED"].includes(status) ? "pass"
+    : status === "NOT_RUN" ? "wait" : "fail"
+  return '<span class="status-pill ' + kind + '">' + escapeHtml(labels[status] || JUDGE_STATUS[status] || status) + '</span>'
+}
+
+function renderPracticeCase(test) {
+  if (test.error) return '<p class="judge-empty">' + escapeHtml(test.error) + '</p>'
+  if (!test.run) return ""
+  const output = (title, value) => '<div><h4>' + title + '</h4><pre>' + escapeHtml(value) + '</pre></div>'
+  return '<div class="practice-case-output"><div class="judge-input">' +
+      output("本次输入", test.input || "（无输入）") + '</div>' +
+    '<div class="judge-output' + (test.expected === null ? ' judge-output-single' : '') + '">' +
+      output("实际输出", test.run.stdout || "（无输出）") +
+      (test.expected === null ? "" : output("预期输出", test.expected || "（空输出）")) +
+      (test.run.stderr ? '<div class="judge-output-stderr">' + output("错误输出", test.run.stderr) + '</div>' : "") +
+    '</div></div>'
+}
+
+function showPracticeResults(results, batch) {
+  const passed = results.filter(test => test.status === "SAMPLE_PASSED").length
+  const log = results.find(test => test.status === "COMPILE_ERROR")?.log || results.find(test => test.log)?.log || ""
+  const first = results[0]
+  const summary = batch ? "公开样例通过 " + passed + " / " + results.length : ""
+  const resultBadge = batch
+    ? '<span class="status-pill ' + (passed === results.length ? "pass" : "fail") + '">' + summary + '</span>'
+    : practiceCaseBadge(first.status)
+  const elapsed = judgeMillis(first.run?.time)
+  $("test-metrics").innerHTML = resultBadge + (!batch && elapsed != null ? '<span>用时 ' + elapsed + ' ms</span>' : "") +
+    (!batch && first.run?.exitcode != null ? '<span>退出码 ' + escapeHtml(first.run.exitcode) + '</span>' : "")
+  $("test-result").className = "result-grid one"
+  $("test-result").innerHTML = batch
+    ? '<div class="result-box">' + results.map(test => '<p>' + escapeHtml(test.name) + ' ' + practiceCaseBadge(test.status) + '</p>').join("") + '</div>'
+    : renderPracticeCase(first) || (log ? '<div class="result-box"><h4>编译日志</h4><pre>' + escapeHtml(log) + '</pre></div>' : "")
+
+  const cases = results.map(test => {
+    const elapsed = judgeMillis(test.run?.time)
+    const header = escapeHtml(test.name) + ' ' + practiceCaseBadge(test.status) +
+      (elapsed != null ? '<span>用时 ' + elapsed + ' ms</span>' : "")
+    return '<section class="judge-block"><h3 class="practice-case-head">' + header + '</h3>' + renderPracticeCase(test) + '</section>'
+  }).join("")
+  const title = batch ? "全部公开样例" : first.public ? "样例评测结果" : "运行测试结果"
+  modal(title, '<div class="judge-result">' + (summary ? '<p class="practice-case-summary">' + summary + '</p>' : "") + cases +
+    '<section class="judge-block"><h3>编译器输出</h3>' +
+    (log ? '<pre class="judge-compiler-log">' + escapeHtml(log) + '</pre>' : '<p class="judge-empty">无编译器输出</p>') +
+    '</section></div>', { compilerOutput: log })
+  $("modal-close").focus()
+}
+
+async function runTest(batch = false) {
+  const singleButton = $("btn-run-test")
+  const batchButton = $("btn-run-all-tests")
+  if (singleButton.disabled) return
+  // Snapshot the program, input and expected output before the first request.
+  const detail = buildDetail(true)
+  const tests = batch ? exampleCases().map(sampleCase) : [currentTestCase()]
+  if (!tests.length) return
+  if (!detail.programmingSubmissionDetail.program.trim()) {
+    toast("请先输入 Java 代码")
+    focusEditor(state.view)
+    return
+  }
+  const activeButton = batch ? batchButton : singleButton
+  const buttonLabel = activeButton.textContent
+  singleButton.disabled = batchButton.disabled = true
+  activeButton.textContent = "运行中…"
   setTestPanelOpen(true)
+  $("test-result").textContent = ""
   try {
-    const { submissionId } = await api("POST", `/api/exams/${EID}/exam-submissions`,
-      { problemType: "PROGRAMMING", details: [buildDetail(true)] })   // 注意：带 customTestData
-    renderTestResult({ status: "JUDGING", judgeResponseContents: [] })
-    $("test-metrics").innerHTML = `<span class="status-pill wait">评测中…</span>`
-    const sub = await pollSubmission(submissionId, s => {
-      if (PENDING.has(s.status)) return
-    })
-    renderTestResult(sub)
-    if (state.psp.sampleOnly && sub) showSubmissionResult(sub, { sample: true })
-    if (state.psp.sampleOnly && sub?.status === "NEUTRAL") {
-      const detail = sub.submissionDetails?.[0]
-      const comp = sub.judgeResponseContents?.[0]?.programmingJudgeResponseContent
-      const result = comp?.testcaseJudgeResults?.custom
-      const input = detail?.customTestData?.content
-      const sample = exampleCases().find(item => (item.input || "").trim() === (input || "").trim())
-      if (sample && result?.exitcode === 0 && (!result.exceed || result.exceed === "UNKNOWN_TESTCASE_EXCEED")) {
-        practiceAnswers[PSPPID] = { sampleRun: true, sampleWrong: normalize(result.stdout) !== normalize(sample.output) }
-        savePracticeAnswers()
-        loadProgramPracticeStatus()
+    const results = []
+    let stop = false
+    for (const test of tests) {
+      if (stop) {
+        results.push({ ...test, status: "NOT_RUN" })
+        continue
+      }
+      $("test-metrics").textContent = batch ? "正在运行 " + (results.length + 1) + " / " + tests.length : "评测中…"
+      try {
+        const result = await judgePracticeCase(test, detail)
+        results.push(result)
+        stop = result.status === "COMPILE_ERROR"
+      } catch (error) {
+        results.push({ ...test, status: "SERVICE_ERROR", error: error.message })
+        stop = true
       }
     }
-    saveDraft()   // 线上跑完自测会顺手存一次草稿
-  } catch (e) {
-    toast("运行失败：" + e.message)
-    $("test-metrics").innerHTML = `<span class="status-pill fail">${escapeHtml(e.message)}</span>`
+    if (!batch && results[0].status === "SERVICE_ERROR") {
+      $("test-metrics").textContent = "运行失败：" + results[0].error
+      return
+    }
+    showPracticeResults(results, batch)
+    const judgedSamples = results.filter(test => test.public && test.run)
+    if (state.psp.sampleOnly && judgedSamples.length) {
+      const sampleResults = { ...practiceAnswers[PSPPID]?.sampleResults }
+      for (const test of judgedSamples) {
+        sampleResults[test.index] = test.status === "SAMPLE_PASSED"
+      }
+      const sampleWrong = Object.values(sampleResults).includes(false)
+      practiceAnswers[PSPPID] = { sampleRun: true, sampleWrong, sampleResults }
+      savePracticeAnswers()
+      loadProgramPracticeStatus()
+    }
+    saveDraft()
   } finally {
-    btn.disabled = false
+    singleButton.disabled = batchButton.disabled = false
+    activeButton.textContent = buttonLabel
     updateRunTestLabel()
   }
 }
+
 
 // ---------------------------------------------------------------- 正式提交
 async function submit() {
@@ -441,23 +533,12 @@ const judgeMillis = seconds => typeof seconds === "number" ? Math.round(seconds 
 const judgeMemory = bytes => bytes > 0 ? Math.round(bytes / 1024) : null
 const judgeScore = (score, max) => max == null ? score ?? "—" : `${score ?? 0} / ${max}`
 
-function showSubmissionResult(sub, { problem = state.psp, sample = false } = {}) {
+function showSubmissionResult(sub, { problem = state.psp } = {}) {
   if (!sub) return
-  const detail = sub.submissionDetails?.[0] || {}
   const cfg = problem?.problemConfig?.programmingProblemConfig || {}
   const judged = sub.judgeResponseContents?.[0]?.programmingJudgeResponseContent || {}
   const compilation = judged.compilationResult || {}
   const cases = Object.entries(judged.testcaseJudgeResults || {})
-  const sampleRun = sample ? judged.testcaseJudgeResults?.custom : null
-  const submittedInput = detail.customTestData?.content
-  const expected = sampleRun && (cfg.exampleTestDatas || []).find(item =>
-    (item.input || "").trim() === (submittedInput || "").trim())
-  let status = sub.status
-  if (sampleRun) {
-    if (sampleRun.exceed && sampleRun.exceed !== "UNKNOWN_TESTCASE_EXCEED") status = sampleRun.exceed
-    else if (sampleRun.exitcode !== 0) status = "RUNTIME_ERROR"
-    else if (expected) status = normalize(sampleRun.stdout) === normalize(expected.output) ? "SAMPLE_PASSED" : "SAMPLE_FAILED"
-  }
   const displayStatus = value => JUDGE_STATUS[value] || value || "—"
   const badge = value => {
     const kind = value === "SAMPLE_PASSED" || value === "NEUTRAL" ? "pass" : statusClass(value)
@@ -467,29 +548,21 @@ function showSubmissionResult(sub, { problem = state.psp, sample = false } = {})
     const testConfig = cfg.cases?.[name]
     const hints = testConfig?.showHint ? testConfig.hint : ""
     return `<tr>
-      <td>${escapeHtml(sample ? (expected ? "公开样例" : "自定义输入") : name)}</td>
+      <td>${escapeHtml(name)}</td>
       <td>${escapeHtml(hints || "—")}</td>
       <td>${judgeMemory(test.memory) ?? "—"}</td>
       <td>${judgeMillis(test.time) ?? "—"}</td>
-      <td>${badge(sample ? status : test.result)}</td>
-      <td>${sample ? "—" : escapeHtml(judgeScore(test.testcaseScore, testConfig?.score))}</td>
+      <td>${badge(test.result)}</td>
+      <td>${escapeHtml(judgeScore(test.testcaseScore, testConfig?.score))}</td>
     </tr>`
   }).join("")
   const codeOutput = String(compilation.log || compilation.error || "").replace(/\r\n/g, "\n")
-  const outputBlock = sampleRun ? `<section class="judge-block">
-    <h3>运行输出</h3><div class="judge-output${expected ? "" : " judge-output-single"}">
-      <div><h4>实际输出</h4><pre>${escapeHtml(sampleRun.stdout || "（无输出）")}</pre></div>
-      ${expected ? `<div><h4>预期输出</h4><pre>${escapeHtml(expected.output)}</pre></div>` : ""}
-      ${sampleRun.stderr ? `<div class="judge-output-stderr"><h4>stderr</h4><pre>${escapeHtml(sampleRun.stderr)}</pre></div>` : ""}
-    </div></section>` : ""
-  const title = sample ? (sampleRun && !expected ? "运行测试结果" : "样例评测结果") : "提交结果"
-  modal(title, `<div class="judge-result">
+  modal("提交结果", `<div class="judge-result">
     <section class="judge-block"><h3>评测详情</h3>
       ${rows ? `<table class="judge-table">
         <thead><tr><th>测试点</th><th>提示</th><th>内存 (KB)</th><th>用时 (ms)</th><th>结果</th><th>得分</th></tr></thead>
-        <tbody>${rows}</tbody></table>` : `<p class="judge-empty">${badge(status)}　暂无测试点结果</p>`}
+        <tbody>${rows}</tbody></table>` : `<p class="judge-empty">${badge(sub.status)}　暂无测试点结果</p>`}
     </section>
-    ${outputBlock}
     <section class="judge-block"><h3>编译器输出</h3>
       ${codeOutput ? `<pre class="judge-compiler-log">${escapeHtml(codeOutput)}</pre>` : '<p class="judge-empty">无编译器输出</p>'}
     </section></div>`, { compilerOutput: codeOutput })
@@ -610,6 +683,11 @@ async function boot() {
     }
 
     renderProblem(state.psp)
+    const back = $("back-to-filter")
+    if (practiceScope === "browse") {
+      back.href = homeUrl(practiceFilters)
+      back.hidden = false
+    }
     $("btn-submit").hidden = !!state.psp.sampleOnly
     $("btn-last").hidden = !!state.psp.sampleOnly
     $("sample-only-note").hidden = !state.psp.sampleOnly
@@ -650,8 +728,11 @@ async function boot() {
     initEditor(docText)
     loadProgramPracticeStatus()
     $("test-input").value = state.testData
-    updateRunTestLabel()
     const samples = exampleCases()
+    $("test-check-output").checked = cached?.customExpected === true
+    $("test-expected-output").value = cached?.expectedOutput ?? ""
+    $("test-expected-field").hidden = !$("test-check-output").checked
+    $("btn-run-all-tests").hidden = samples.length < 2
     const samplePicker = $("test-sample-picker")
     if (samples.length > 1) {
       samplePicker.hidden = false
@@ -659,6 +740,7 @@ async function boot() {
       select.innerHTML = samples.map((_, index) => `<option value="${index}">样例 ${index + 1}</option>`).join("")
       select.onchange = () => $("btn-reset-test").click()
     }
+    updateRunTestLabel()
     initSplit()
 
     // 事件
@@ -673,14 +755,24 @@ async function boot() {
       updateRunTestLabel()
       scheduleSave()
     })
+    $("test-check-output").onchange = () => {
+      $("test-expected-field").hidden = !$("test-check-output").checked
+      updateRunTestLabel()
+      cacheLocal()
+    }
+    $("test-expected-output").oninput = cacheLocal
     $("btn-reset-test").onclick = () => {
       const c = exampleCases()[Number($("test-sample").value || 0)]
       state.testData = c ? c.input : ""
       $("test-input").value = state.testData
+      $("test-check-output").checked = false
+      $("test-expected-field").hidden = true
       updateRunTestLabel()
+      cacheLocal()
       scheduleSave()
     }
-    $("btn-run-test").onclick = runTest
+    $("btn-run-test").onclick = () => runTest()
+    $("btn-run-all-tests").onclick = () => runTest(true)
     $("btn-submit").onclick = submit
     $("btn-last").onclick = showLastSubmission
     $("btn-save-draft").onclick = () => saveDraft().then(() => toast("草稿已保存"))
@@ -728,9 +820,10 @@ async function boot() {
 }
 
 const pageUrl = page => `/?page=${page}`
-const problemUrl = (id, type = "PROGRAMMING", scope = "") => {
+const problemUrl = (id, type = "PROGRAMMING", scope = "", filters = {}) => {
   const query = new URLSearchParams({ problemSetProblemId: id })
   if (scope) query.set("scope", scope)
+  if (scope === "browse") appendFilters(query, filters)
   return `${pageUrl(type === "PROGRAMMING" ? "programming" : "review")}&${query}`
 }
 const submissionsPath = `/api/exams/${EID}/problem-sets/${PSID}/submissions`
@@ -740,7 +833,41 @@ const PRACTICE_TYPES = {
   TRUE_FALSE: "判断题", SINGLE_CHOICE: "单选题", MULTIPLE_CHOICE: "多选题",
   PROGRAM_FILL_IN: "程序填空题", PROGRAMMING: "编程题", IMPORTED_REVIEW: "其他题目",
 }
-const practiceScope = new URLSearchParams(location.search).get("scope") || ""
+const practiceQuery = new URLSearchParams(location.search)
+const practiceScope = practiceQuery.get("scope") || ""
+const practiceFilters = {
+  q: practiceQuery.get("q") || "",
+  chapter: practiceQuery.get("chapter") || "",
+  status: practiceQuery.get("status") || "",
+}
+const chapterName = problem => problem.chapter || "未分类"
+const searchKey = value => value.normalize("NFKC").toLowerCase()
+
+function appendFilters(query, { q, chapter, status }) {
+  if (q?.trim()) query.set("q", q.trim())
+  if (chapter) query.set("chapter", chapter)
+  if (["new", "wrong"].includes(status)) query.set("status", status)
+}
+
+function homeUrl(filters) {
+  const query = new URLSearchParams()
+  appendFilters(query, filters)
+  return query.size ? "/?" + query : "/"
+}
+
+function filterProblems(problems, { q, chapter, status }, currentId = "") {
+  const terms = searchKey(q).trim().split(/\s+/).filter(Boolean)
+  return problems.filter(problem => {
+    if (problem.id === currentId) return true
+    if (chapter && chapter !== chapterName(problem)) return false
+    if (status === "new" && hasPracticeAnswer(problem)) return false
+    if (status === "wrong" && practiceOutcome(problem) !== "wrong") return false
+    if (!terms.length) return true
+    const label = [problem.label, problem.title, problem.searchable].join(" ")
+    const text = searchKey(label)
+    return terms.every(term => text.includes(term))
+  })
+}
 const practiceKey = `ptaPracticeAnswers_${PSID}`
 let practiceAnswers = {}
 try {
@@ -764,11 +891,13 @@ const practiceOutcome = problem => {
   return saved === "correct" || saved === "wrong" ? saved : ""
 }
 const practiceGroup = (problems, currentId = "") => {
+  if (practiceScope === "browse") return filterProblems(problems, practiceFilters, currentId)
   if (practiceScope === "wrong") return problems.filter(p => p.id === currentId || practiceOutcome(p) === "wrong")
   if (Object.hasOwn(PRACTICE_TYPES, practiceScope)) return problems.filter(p => p.type === practiceScope || p.id === currentId)
   return problems
 }
-const practiceLink = (problem, scope = practiceScope) => problemUrl(problem.id, problem.type, scope)
+const practiceLink = (problem, scope = practiceScope, filters = practiceFilters) =>
+  problemUrl(problem.id, problem.type, scope, filters)
 const hasPracticeAnswer = problem => Boolean(practiceOutcome(problem) ||
   practiceAnswers[problem.id]?.answer || (problem.sampleOnly && practiceAnswers[problem.id]?.sampleRun))
 const practiceProgress = problems => {
@@ -866,15 +995,72 @@ async function loadPracticeHome() {
       <section class="practice-card practice-hero"><h1>开始刷题</h1><p>题库共 ${problems.length} 道题</p></section>
       <section class="practice-stats" aria-label="练习统计">${stats.map(([value, label, color]) => `
         <div class="practice-card practice-stat ${color}"><strong>${value}</strong><span>${label}</span></div>`).join("")}</section>
+      <section class="practice-card practice-browser" aria-labelledby="practice-browser-title">
+        <h2 id="practice-browser-title">查找题目</h2>
+        <form id="practice-filters" class="practice-filters">
+          <label>搜索<input name="q" type="search" placeholder="输入题号、标题或题干关键词"></label>
+          <label>章节<select name="chapter"><option value="">全部章节</option>
+            ${[...new Set(problems.map(chapterName))].map(chapter => `<option value="${escapeHtml(chapter)}">${escapeHtml(chapter)}</option>`).join("")}
+          </select></label>
+          <label>作答状态<select name="status"><option value="">全部状态</option><option value="new">未作答</option>
+            <option value="wrong">错题</option></select></label>
+          <button class="btn" type="reset">清除筛选</button>
+        </form>
+        <div class="practice-browser-actions"><p id="practice-find-count" role="status"></p>
+          <a class="btn primary" id="practice-start-filter" hidden>练习筛选结果</a></div>
+        <ul class="practice-found" id="practice-found"></ul>
+        <button class="btn" id="practice-more" type="button" hidden>显示更多题目</button>
+      </section>
       <h2 class="practice-section-title">全部题目</h2>
       <div class="practice-decks">
         ${deck("整套题库", problems, "", "开始 / 继续练习")}
         ${deck("错题集", wrong, "wrong", "重做错题")}
       </div>
       ${groups ? `<h2 class="practice-section-title">按题型练习</h2><div class="practice-decks">${groups}</div>` : ""}`
+    initPracticeBrowser(problems)
   } catch (e) {
     $("page-status").textContent = "读取题库失败：" + e.message
   }
+}
+
+function initPracticeBrowser(problems) {
+  const form = $("practice-filters")
+  const found = $("practice-found")
+  const more = $("practice-more")
+  const start = $("practice-start-filter")
+  const pageSize = 8
+  let shown = pageSize
+  for (const [name, value] of Object.entries(practiceFilters)) {
+    const control = form.elements.namedItem(name)
+    if (name === "q" || [...control.options].some(option => option.value === value)) control.value = value
+  }
+
+  function refresh(reset = true) {
+    if (reset) shown = pageSize
+    const filters = Object.fromEntries(new FormData(form))
+    const url = homeUrl(filters)
+    if (url !== location.pathname + location.search) history.replaceState(null, "", url)
+    const results = filterProblems(problems, filters)
+    const first = results.find(problem => !hasPracticeAnswer(problem)) || results[0]
+    $("practice-find-count").textContent = results.length ? `找到 ${results.length} 道题` : "未找到符合条件的题目"
+    start.hidden = !first
+    if (first) start.href = practiceLink(first, "browse", filters)
+    more.hidden = results.length <= shown
+    found.innerHTML = results.slice(0, shown).map(problem => {
+      const status = practiceOutcome(problem) === "wrong" ? "错题"
+        : hasPracticeAnswer(problem) ? "已作答" : "未作答"
+      return `<li><a href="${escapeHtml(practiceLink(problem, "browse", filters))}">
+        <span class="practice-found-label">${escapeHtml(problem.label)}</span>
+        <strong>${escapeHtml(problem.title)}</strong>
+        <span class="practice-found-meta">${escapeHtml(chapterName(problem))} · ${PRACTICE_TYPES[problem.type] || "题目"} · ${status}</span>
+      </a></li>`
+    }).join("")
+  }
+  form.oninput = () => refresh()
+  form.onsubmit = event => { event.preventDefault(); refresh() }
+  form.onreset = () => queueMicrotask(() => refresh())
+  more.onclick = () => { shown += pageSize; refresh(false) }
+  refresh()
 }
 
 async function loadSubmissions(after = "", before = "") {
@@ -1135,7 +1321,7 @@ async function loadReviewProblem() {
     </section>
     <nav class="practice-card review-nav" aria-label="切题">
       ${previous ? `<a class="btn" href="${practiceLink(previous)}">上一题</a>` : '<button class="btn" disabled>上一题</button>'}
-      <a class="btn" href="/">返回首页</a>
+      <a class="btn" href="${practiceScope === "browse" ? escapeHtml(homeUrl(practiceFilters)) : "/"}">${practiceScope === "browse" ? "返回筛选" : "返回首页"}</a>
       ${nextControl}
     </nav>`
 
