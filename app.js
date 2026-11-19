@@ -1420,6 +1420,13 @@ async function bootExamPage(title, navId, load) {
 const startupQuery = new URLSearchParams(location.search)
 if (!startupQuery.has("page") && !requestedProblemId && !startupQuery.has("panel") && !startupQuery.has("layout")) {
   $("exam-app").classList.add("practice-home")
+  const announcement = $("site-announcement")
+  if (announcement) {
+    announcement.showModal()
+    window.addEventListener("pageshow", event => {
+      if (event.persisted && !announcement.open) announcement.showModal()
+    })
+  }
   bootExamPage("PTA 刷题", "nav-home", loadPracticeHome)
 } else if (startupQuery.get("page") === "submissions") {
   bootExamPage("提交列表", "nav-submissions", loadSubmissions)
