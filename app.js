@@ -1,4 +1,6 @@
 import { api } from "./pages-api.js?v=practice-20261118"
+import { initCloudAccount, signedIn, readAccountDraft, readAccountRecords,
+         saveAccountRecord, syncAccountDraft } from "./cloud-account.js?v=20261124"
 // PTA 复刻版前端逻辑：对齐线上 exam-app 的请求序列与轮询节奏。
 import { createEditor, setLanguage, setFontSize, setTabSize,
          getText, focusEditor } from "./vendor/cm.js"
@@ -244,13 +246,20 @@ function initEditor(docText) {
 
 function cacheLocal() {
   if (!state.view) return
-  const payload = { program: getText(state.view), compiler: state.compiler,
-                    testData: state.testData, saveAt: new Date().toISOString(),
+  const payload = { program: getText(state.view), compiler: state.compiler, testData: state.testData,
                     customExpected: $("test-check-output").checked, expectedOutput: $("test-expected-output").value }
-  try { localStorage.setItem(cacheKey(), JSON.stringify(payload)) } catch {}
+  const previous = readCache()
+  if (Object.entries(payload).every(([key, value]) => previous?.[key] === value)) return
+  try {
+    if (signedIn()) saveAccountRecord("draft", PSPPID, payload)
+    else localStorage.setItem(cacheKey(), JSON.stringify({ ...payload, saveAt: new Date().toISOString() }))
+  } catch (error) {
+    if (signedIn()) toast("草稿未保存，浏览器存储不可用")
+  }
 }
 
 function readCache() {
+  if (signedIn()) return readAccountDraft(PSPPID)
   try { return JSON.parse(localStorage.getItem(cacheKey()) || "null") } catch { return null }
 }
 
@@ -280,13 +289,16 @@ async function saveDraft() {
   state.saving = true
   $("btn-save-draft").classList.add("loading")
   try {
+    if (signedIn()) return await syncAccountDraft()
     const detail = buildDetail(true)
-    if (state.lastDetail && JSON.stringify(detail) === JSON.stringify(state.lastDetail)) return
+    if (state.lastDetail && JSON.stringify(detail) === JSON.stringify(state.lastDetail)) return true
     await api("POST", `/api/problem-sets/problems/${PSPPID}/exam-draft`,
       { answer: { detail, saveAt: new Date().toISOString() } })
     state.lastDetail = detail
+    return true
   } catch (e) {
     toast("草稿保存失败：" + e.message)
+    return false
   } finally {
     state.saving = false
     $("btn-save-draft").classList.remove("loading")
@@ -485,7 +497,7 @@ async function runTest(batch = false) {
       }
       const sampleWrong = Object.values(sampleResults).includes(false)
       practiceAnswers[PSPPID] = { sampleRun: true, sampleWrong, sampleResults }
-      savePracticeAnswers()
+      savePracticeAnswer(PSPPID)
       loadProgramPracticeStatus()
     }
     saveDraft()
@@ -709,21 +721,24 @@ async function boot() {
     // 草稿：localStorage 与服务端取 saveAt 较新的一份（与线上同策略）
     const cached = readCache()
     let draftDetail = null, draftAt = 0
-    try {
-      const draft = await api("GET", `/api/problem-sets/problems/${PSPPID}/exam-draft`)
-      if (draft.answer && draft.answer.detail) {
-        draftDetail = draft.answer.detail
-        draftAt = new Date(draft.answer.saveAt || 0).getTime()
-      }
-    } catch {}
-    const useCache = cached && new Date(cached.saveAt || 0).getTime() > draftAt
+    if (!signedIn()) {
+      try {
+        const draft = await api("GET", `/api/problem-sets/problems/${PSPPID}/exam-draft`)
+        if (draft.answer && draft.answer.detail) {
+          draftDetail = draft.answer.detail
+          draftAt = new Date(draft.answer.saveAt || 0).getTime()
+        }
+      } catch {}
+    }
+    const useCache = cached && (signedIn() || new Date(cached.saveAt || 0).getTime() > draftAt)
     const draftProgram = draftDetail?.programmingSubmissionDetail
     const savedCompiler = (useCache ? cached.compiler : null) || draftProgram?.compiler
     if (COMPILER_META[savedCompiler]) {
       state.compiler = savedCompiler
       renderCompilers(state.config.compilers || ["JAVAC"])
     }
-    const savedProgram = (useCache ? cached.program : null) ?? draftProgram?.program ?? ""
+    const program = (useCache ? cached.program : null) ?? draftProgram?.program
+    const savedProgram = typeof program === "string" ? program : ""
     const docText = savedProgram.replace(/\r\n/g, "\n").trimEnd() === LEGACY_JAVA_STARTER ? "" : savedProgram
     state.testData = (useCache ? cached.testData : null)
       ?? draftDetail?.customTestData?.content
@@ -758,6 +773,7 @@ async function boot() {
     $("test-input").addEventListener("input", e => {
       state.testData = e.target.value
       updateRunTestLabel()
+      cacheLocal()
       scheduleSave()
     })
     $("test-check-output").onchange = () => {
@@ -780,7 +796,11 @@ async function boot() {
     $("btn-run-all-tests").onclick = () => runTest(true)
     $("btn-submit").onclick = submit
     $("btn-last").onclick = showLastSubmission
-    $("btn-save-draft").onclick = () => saveDraft().then(() => toast("草稿已保存"))
+    $("btn-save-draft").onclick = async () => {
+      cacheLocal()
+      if (await saveDraft()) toast("草稿已保存")
+      else if (signedIn()) toast("云同步未完成，请查看账号状态")
+    }
     $("btn-settings").onclick = openSettings
     $("btn-compiler-info").onclick = openCompilerInfo
     $("btn-editor-fullscreen").onclick = () => {
@@ -800,11 +820,11 @@ async function boot() {
       setLanguage(state.view, c)
       renderCompilers(state.config.compilers || ["JAVAC"])
       $("compiler-select").classList.remove("open")
+      cacheLocal()
       scheduleSave()
     })
     document.addEventListener("click", () => $("compiler-select").classList.remove("open"))
 
-    window.addEventListener("beforeunload", () => { cacheLocal() })
     // 切题/卸载时强制落地一次（线上 componentWillUnmount 同样会 handleSave(true)）
     document.addEventListener("visibilitychange", () => { if (document.hidden) saveDraft() })
   } catch (e) {
@@ -875,12 +895,21 @@ function filterProblems(problems, { q, chapter, status }, currentId = "") {
 }
 const practiceKey = `ptaPracticeAnswers_${PSID}`
 let practiceAnswers = {}
-try {
-  const stored = JSON.parse(localStorage.getItem(practiceKey))
-  if (stored && typeof stored === "object" && !Array.isArray(stored)) practiceAnswers = stored
-} catch {}
-function savePracticeAnswers() {
-  try { localStorage.setItem(practiceKey, JSON.stringify(practiceAnswers)) } catch {}
+function loadPracticeAnswers() {
+  if (signedIn()) {
+    practiceAnswers = readAccountRecords("answer")
+    return
+  }
+  try {
+    const stored = JSON.parse(localStorage.getItem(practiceKey))
+    if (stored && typeof stored === "object" && !Array.isArray(stored)) practiceAnswers = stored
+  } catch {}
+}
+function savePracticeAnswer(id) {
+  try {
+    if (signedIn()) saveAccountRecord("answer", id, practiceAnswers[id])
+    else localStorage.setItem(practiceKey, JSON.stringify(practiceAnswers))
+  } catch { toast("作答记录未保存，浏览器存储不可用") }
 }
 const getPracticeProblems = async () => {
   const { problems } = await api("GET", `/api/problem-sets/${PSID}/exam-problem-list?exam_id=${EID}`)
@@ -1428,7 +1457,7 @@ async function loadReviewProblem() {
         const outcome = markAnswer(answer)
         if (explanation) explanation.open = true
         practiceAnswers[problem.id] = { answer, outcome }
-        savePracticeAnswers()
+        savePracticeAnswer(problem.id)
         renderAnswerProgress(progress, problems, index)
       }
     }
@@ -1447,7 +1476,7 @@ async function loadRankings() {
         <section class="practice-card practice-empty-state">
           <span class="practice-empty-badge">公开刷题版</span>
           <h2>暂无排名数据</h2>
-          <p>所有刷题进度、错题集与代码草稿均保存在你自己的浏览器本地，不会上传排名。</p>
+          <p>登录后可在自己的设备间同步刷题进度、错题和代码草稿。</p>
           <a class="btn primary" href="/">返回首页刷题</a>
         </section>`
       return
@@ -1485,6 +1514,8 @@ async function bootExamPage(title, navId, load) {
   await load()
 }
 
+await initCloudAccount()
+loadPracticeAnswers()
 const startupQuery = new URLSearchParams(location.search)
 if (!startupQuery.has("page") && !requestedProblemId && !startupQuery.has("panel") && !startupQuery.has("layout")) {
   $("exam-app").classList.add("practice-home")

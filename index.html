@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffffff">
 <title>PTA 刷题</title>
-<link rel="stylesheet" href="/style.css?v=ui-20261124">
+<link rel="stylesheet" href="/style.css?v=cloud-20261124">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 </head>
 <body>
@@ -34,6 +34,7 @@
           <a id="nav-rankings" class="nav-muted" href="/?page=rankings">排名</a>
         </span>
       </nav>
+      <button id="cloud-account-button" class="btn ghost account-button" type="button" hidden>登录</button>
     </div>
   </header>
 
@@ -143,6 +144,34 @@
   </form>
 </dialog>
 
+<dialog id="cloud-account-dialog" class="account-dialog" aria-labelledby="cloud-account-title">
+  <header>
+    <h2 id="cloud-account-title">刷题账号</h2>
+    <button class="btn ghost" id="cloud-account-close" type="button" aria-label="关闭账号弹窗">✕</button>
+  </header>
+  <p id="cloud-auth-note" hidden>请使用管理员分配的邮箱和密码登录。</p>
+  <form id="cloud-auth-form" hidden>
+    <label>邮箱<input id="cloud-auth-email" type="email" name="email" autocomplete="username" required></label>
+    <label>密码<input id="cloud-auth-password" type="password" name="password" autocomplete="current-password" required></label>
+    <div class="account-actions">
+      <button class="btn primary" type="submit" value="login">登录</button>
+      <button class="btn" id="cloud-auth-register" type="submit" value="register" hidden>注册</button>
+    </div>
+  </form>
+  <button class="btn" id="cloud-auth-github" type="button" hidden>使用 GitHub 登录</button>
+  <section id="cloud-account-panel" hidden>
+    <p id="cloud-account-email"></p>
+    <p id="cloud-account-status" role="status"></p>
+    <p id="cloud-account-import-note" hidden></p>
+    <div class="account-actions">
+      <button class="btn primary" id="cloud-account-sync" type="button">立即同步</button>
+      <button class="btn" id="cloud-account-import" type="button" hidden>导入本机记录</button>
+      <button class="btn ghost" id="cloud-account-logout" type="button">退出登录</button>
+    </div>
+  </section>
+  <p id="cloud-account-message" role="status"></p>
+</dialog>
+
 <div class="modal-mask" id="modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <header><span id="modal-title">标题</span><button class="btn ghost" id="modal-close" aria-label="关闭弹窗">✕</button></header>
@@ -159,6 +188,6 @@
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="/app.js?v=ui-20261124"></script>
+<script type="module" src="/app.js?v=cloud-20261124"></script>
 </body>
 </html>

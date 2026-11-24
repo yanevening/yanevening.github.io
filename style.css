@@ -317,6 +317,43 @@ button, input, select, textarea { font-family: inherit; }
 }
 .topbar .ps-name:empty { display: none; }
 
+.account-button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.account-dialog {
+  width: min(420px, calc(100% - 32px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-overlay);
+}
+
+.account-dialog::backdrop { background: rgb(15 23 42 / 45%); }
+.account-dialog header, .account-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-dialog header { justify-content: space-between; }
+.account-dialog h2 { margin: 0; font-size: 19px; }
+.account-dialog form { display: grid; gap: 12px; margin-top: 16px; }
+.account-dialog label { display: grid; gap: 5px; }
+.account-dialog input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+.account-actions { flex-wrap: wrap; }
+#cloud-auth-github { margin-top: 12px; }
+#cloud-account-email { overflow-wrap: anywhere; }
+#cloud-account-message:empty { display: none; }
+
 .practice-menu {
   display: flex;
   align-items: center;
