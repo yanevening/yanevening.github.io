@@ -167,6 +167,11 @@ function renderQuestionBlocks(blocks) {
 }
 
 function renderProblem(psp) {
+  const labelEl = $("problem-label")
+  if (labelEl) {
+    labelEl.textContent = psp.label || ""
+    labelEl.hidden = !psp.label
+  }
   $("problem-title").textContent = psp.title
   const raw = psp.content || psp.description || ""
   const parts = raw.split(/###\s*输入样例[：:]\s*/)
@@ -189,7 +194,7 @@ function renderProblem(psp) {
   }
   $("problem-body").innerHTML = `
     <h2>${escapeHtml(psp.title)}</h2>
-    ${psp.chapter ? `<p class="review-note">${escapeHtml(psp.chapter)}</p>` : ""}
+    ${psp.chapter ? `<p class="problem-chapter-tag">${escapeHtml(psp.chapter)}</p>` : ""}
     ${psp.blocks?.length ? renderQuestionBlocks(psp.blocks) : `<div style="white-space:pre-wrap">${escapeHtml(head.trim())}</div>${samplesHtml}`}
     ${renderPracticeHints(psp.hints)}
     <div class="metas">
@@ -926,6 +931,12 @@ function renderAnswerProgress(container, problems, index) {
   container.innerHTML = `<details class="answer-progress-menu" ${menuWasOpen ? "open" : ""}>
     <summary>答题进度</summary>
     <div class="answer-progress-grid">
+      <div class="answer-progress-legend" aria-hidden="true">
+        <span class="answer-progress-legend-item"><i class="current"></i>当前题</span>
+        <span class="answer-progress-legend-item"><i class="completed"></i>已完成</span>
+        <span class="answer-progress-legend-item"><i class="wrong"></i>错题</span>
+        <span class="answer-progress-legend-item"><i></i>未作答</span>
+      </div>
       <nav class="answer-progress-links" aria-label="题号导航">${links}</nav>
     </div>
   </details>
@@ -971,32 +982,59 @@ async function loadPracticeHome() {
   try {
     const problems = await getPracticeProblems()
     const all = practiceProgress(problems)
+    const remain = Math.max(0, problems.length - all.done)
+    const accuracy = percent(all.correct, all.correct + all.wrong)
+    const overallProgress = percent(all.done, problems.length)
+    const chapterCount = new Set(problems.map(chapterName)).size
+    const wrong = problems.filter(p => practiceOutcome(p) === "wrong")
+    const nextTodo = problems.find(p => !hasPracticeAnswer(p)) || problems[0]
     const stats = [
-      [all.done, "已作答", "total"], [all.correct, "答对", "correct"],
-      [all.wrong, "答错", "wrong"], [`${percent(all.correct, all.correct + all.wrong)}%`, "正确率", ""],
-      [all.wrong, "待重做", "wrong"],
+      [all.done, "已作答", "total"],
+      [all.correct, "答对", "correct"],
+      [all.wrong, "答错", "wrong"],
+      [`${accuracy}%`, "正确率", "rate"],
+      [remain, "未作答", "remain"],
     ]
     const deck = (title, items, scope, action) => {
       const { done } = practiceProgress(items)
       const first = scope === "wrong" ? items[0] : items.find(p => !hasPracticeAnswer(p)) || items[0]
-      return `<section class="practice-card practice-deck">
-        <h3>${title}</h3><p>${items.length} 道题 · 已答 ${done}</p>
+      const rate = percent(done, items.length)
+      const wrongCard = scope === "wrong" && items.length ? " is-wrong" : ""
+      return `<section class="practice-card practice-deck${wrongCard}">
+        <div class="practice-deck-head">
+          <h3>${title}</h3>
+          <span class="practice-deck-rate">${scope === "wrong" ? `${items.length} 题` : `${rate}%`}</span>
+        </div>
+        <p>${items.length} 道题 · ${scope === "wrong" ? "待复习重做" : `已答 ${done}`}</p>
         ${progressBar(done, items.length)}
-        ${first ? `<a class="practice-action" href="${practiceLink(first, scope)}">${action}</a>` : '<span class="practice-muted">暂无题目</span>'}
+        <div class="practice-deck-foot">
+          ${first ? `<a class="practice-action" href="${practiceLink(first, scope)}">${action} →</a>` : '<span class="practice-muted">暂无题目</span>'}
+        </div>
       </section>`
     }
-    const wrong = problems.filter(p => practiceOutcome(p) === "wrong")
     const groups = Object.entries(PRACTICE_TYPES).map(([type, title]) => {
       const group = problems.filter(p => p.type === type)
       return group.length ? deck(title, group, type, "开始练习") : ""
     }).join("")
     $("page-status").textContent = ""
     $("page-body").innerHTML = `
-      <section class="practice-card practice-hero"><h1>开始刷题</h1><p>题库共 ${problems.length} 道题</p></section>
+      <section class="practice-card practice-hero">
+        <div class="practice-hero-main">
+          <h1>开始刷题</h1>
+          <p class="practice-hero-meta">Java 题库共 ${problems.length} 道题 · ${chapterCount} 个章节 · 总完成度 <strong>${overallProgress}%</strong></p>
+          <div class="practice-hero-progress">${progressBar(all.done, problems.length)}</div>
+        </div>
+        <div class="practice-hero-actions">
+          ${nextTodo ? `<a class="btn primary" href="${practiceLink(nextTodo, "")}">${all.done ? "继续刷题" : "开始刷题"}</a>` : ""}
+          ${wrong.length ? `<a class="btn soft-danger" href="${practiceLink(wrong[0], "wrong")}">重做错题 (${wrong.length})</a>` : ""}
+        </div>
+      </section>
       <section class="practice-stats" aria-label="练习统计">${stats.map(([value, label, color]) => `
         <div class="practice-card practice-stat ${color}"><strong>${value}</strong><span>${label}</span></div>`).join("")}</section>
       <section class="practice-card practice-browser" aria-labelledby="practice-browser-title">
-        <h2 id="practice-browser-title">查找题目</h2>
+        <div class="practice-browser-head">
+          <h2 id="practice-browser-title">查找题目</h2>
+        </div>
         <form id="practice-filters" class="practice-filters">
           <label>搜索<input name="q" type="search" placeholder="输入题号、标题或题干关键词"></label>
           <label>章节<select name="chapter"><option value="">全部章节</option>
@@ -1016,7 +1054,7 @@ async function loadPracticeHome() {
         ${deck("整套题库", problems, "", "开始 / 继续练习")}
         ${deck("错题集", wrong, "wrong", "重做错题")}
       </div>
-      ${groups ? `<h2 class="practice-section-title">按题型练习</h2><div class="practice-decks">${groups}</div>` : ""}`
+      ${groups ? `<h2 class="practice-section-title">按题型练习</h2><div class="practice-decks practice-decks-types">${groups}</div>` : ""}`
     initPracticeBrowser(problems)
   } catch (e) {
     $("page-status").textContent = "读取题库失败：" + e.message
@@ -1042,17 +1080,23 @@ function initPracticeBrowser(problems) {
     if (url !== location.pathname + location.search) history.replaceState(null, "", url)
     const results = filterProblems(problems, filters)
     const first = results.find(problem => !hasPracticeAnswer(problem)) || results[0]
-    $("practice-find-count").textContent = results.length ? `找到 ${results.length} 道题` : "未找到符合条件的题目"
+    $("practice-find-count").innerHTML = results.length ? `找到 <strong>${results.length}</strong> 道题` : "未找到符合条件的题目"
     start.hidden = !first
     if (first) start.href = practiceLink(first, "browse", filters)
     more.hidden = results.length <= shown
     found.innerHTML = results.slice(0, shown).map(problem => {
-      const status = practiceOutcome(problem) === "wrong" ? "错题"
-        : hasPracticeAnswer(problem) ? "已作答" : "未作答"
+      const isWrong = practiceOutcome(problem) === "wrong"
+      const isDone = !isWrong && hasPracticeAnswer(problem)
+      const status = isWrong ? "错题" : isDone ? "已作答" : "未作答"
+      const statusCls = isWrong ? "is-wrong" : isDone ? "is-done" : "is-new"
       return `<li><a href="${escapeHtml(practiceLink(problem, "browse", filters))}">
         <span class="practice-found-label">${escapeHtml(problem.label)}</span>
         <strong>${escapeHtml(problem.title)}</strong>
-        <span class="practice-found-meta">${escapeHtml(chapterName(problem))} · ${PRACTICE_TYPES[problem.type] || "题目"} · ${status}</span>
+        <span class="practice-found-meta">
+          <span class="practice-found-tag">${escapeHtml(chapterName(problem))}</span>
+          <span class="practice-found-tag">${PRACTICE_TYPES[problem.type] || "题目"}</span>
+          <span class="practice-status-badge ${statusCls}">${status}</span>
+        </span>
       </a></li>`
     }).join("")
   }
@@ -1073,8 +1117,19 @@ async function loadSubmissions(after = "", before = "") {
     const { submissions, problemById } = await api("GET", `${submissionsPath}?${query}`)
     const extra = submissions.length > submissionPageSize
     const items = before ? submissions.slice(-submissionPageSize) : submissions.slice(0, submissionPageSize)
-    $("page-status").textContent = items.length ? "" : "暂无正式提交记录。"
-    $("page-body").innerHTML = items.length ? `
+    if (!items.length) {
+      $("page-status").textContent = ""
+      $("page-body").innerHTML = `
+        <section class="practice-card practice-empty-state">
+          <span class="practice-empty-badge">公开刷题版</span>
+          <h2>暂无正式提交记录</h2>
+          <p>当前公开练习版专注章节刷题、错题复习与公开样例即时评测，不提供整卷交卷与历史判题流水。</p>
+          <a class="btn primary" href="/">返回首页刷题</a>
+        </section>`
+      return
+    }
+    $("page-status").textContent = ""
+    $("page-body").innerHTML = `
       <div class="exam-table-wrap">
         <table class="exam-table" aria-label="提交记录">
           <thead><tr><th>提交号</th><th>题目</th><th>状态</th><th>得分</th><th>编译器</th><th>提交时间</th><th>详情</th></tr></thead>
@@ -1092,7 +1147,7 @@ async function loadSubmissions(after = "", before = "") {
       <div class="exam-pagination">
         <button class="btn" id="btn-submissions-prev" ${(before ? !extra : !after) ? "disabled" : ""}>上一页</button>
         <button class="btn" id="btn-submissions-next" ${!before && !extra ? "disabled" : ""}>下一页</button>
-      </div>` : ""
+      </div>`
     if (!items.length) return
     $("btn-submissions-prev").onclick = () => loadSubmissions("", items[0].id)
     $("btn-submissions-next").onclick = () => loadSubmissions(items.at(-1).id)
@@ -1132,18 +1187,20 @@ async function loadProblems() {
   $("page-status").textContent = "正在加载题目…"
   try {
     const problems = await getPracticeProblems()
-    $("page-status").textContent = problems.length ? "" : "暂无题目。"
+    $("page-status").innerHTML = problems.length ? `共 <strong>${problems.length}</strong> 道题 · 支持点击作答或本地增删` : "暂无题目。"
     $("page-body").innerHTML = `<ul class="exam-problems">${problems.map(problem => {
       const status = problem.status
+      const outcome = practiceOutcome(problem)
       const label = status === "ACCEPTED" ? "已通过" : PENDING.has(status) ? "评测中" : status ? "已提交" : "未提交"
       const href = problemUrl(problem.id, problem.type)
       const displayStatus = problem.type === "PROGRAMMING" ? (problem.sampleOnly ? "样例练习" : label)
         : PRACTICE_TYPES[problem.type] || "查看题面"
+      const dotClass = status ? statusClass(status) : outcome === "correct" ? "pass" : outcome === "wrong" ? "fail" : ""
       return `<li class="exam-problem-row"><a class="exam-problem" href="${href}">
         <span class="exam-problem-label">${escapeHtml(problem.label)}</span>
         <strong>${escapeHtml(problem.title)}</strong>
         <span class="exam-problem-score">${problem.score == null ? "" : escapeHtml(problem.score) + " 分"}</span>
-        <span class="exam-problem-status"><i class="${status ? statusClass(status) : ""}" aria-hidden="true"></i>${displayStatus}</span>
+        <span class="exam-problem-status"><i class="${dotClass}" aria-hidden="true"></i>${displayStatus}</span>
       </a><button class="btn problem-delete" data-delete-problem="${escapeHtml(problem.id)}"
         aria-label="删除 ${escapeHtml(problem.label)} ${escapeHtml(problem.title)}">删除</button></li>`
     }).join("")}</ul>`
@@ -1277,8 +1334,8 @@ async function loadReviewProblem() {
     const index = problems.findIndex(p => p.id === problem.id)
     const previous = problems[index - 1]
     const next = problems[index + 1]
-    const nextControl = next ? `<a class="btn primary" href="${practiceLink(next)}">下一题</a>`
-      : '<button class="btn" type="button" disabled>下一题</button>'
+    const nextControl = next ? `<a class="btn primary review-nav-next" href="${practiceLink(next)}">下一题 →</a>`
+      : '<button class="btn review-nav-next" type="button" disabled>下一题 →</button>'
     if (problem.type === "PROGRAMMING") throw new Error("请从题目列表进入作答页")
     const isMultiple = problem.type === "MULTIPLE_CHOICE"
     const isChoice = ["SINGLE_CHOICE", "TRUE_FALSE", "MULTIPLE_CHOICE"].includes(problem.type)
@@ -1292,9 +1349,9 @@ async function loadReviewProblem() {
     <section class="practice-card review-card">
       <header class="practice-question-meta"><strong>第 ${index + 1} 题</strong>
         <span class="practice-chip type">${escapeHtml(typeLabel)}</span>
-        ${problem.score == null ? "" : `<span>${escapeHtml(problem.score)} 分</span>`}
-        <span>${escapeHtml(problem.label)}</span>
-        ${problem.chapter ? `<span>${escapeHtml(problem.chapter)}</span>` : ""}
+        ${problem.score == null ? "" : `<span class="practice-score-pill">${escapeHtml(problem.score)} 分</span>`}
+        <span class="practice-label-pill">${escapeHtml(problem.label)}</span>
+        ${problem.chapter ? `<span class="practice-chapter-pill">${escapeHtml(problem.chapter)}</span>` : ""}
       </header>
       ${problem.blocks?.length ? `<div class="review-stem">${renderQuestionBlocks(problem.blocks)}</div>`
         : `<p class="review-stem">${escapeHtml(problem.content)}</p>`}
@@ -1320,8 +1377,8 @@ async function loadReviewProblem() {
       </details>` : ""}
     </section>
     <nav class="practice-card review-nav" aria-label="切题">
-      ${previous ? `<a class="btn" href="${practiceLink(previous)}">上一题</a>` : '<button class="btn" disabled>上一题</button>'}
-      <a class="btn" href="${practiceScope === "browse" ? escapeHtml(homeUrl(practiceFilters)) : "/"}">${practiceScope === "browse" ? "返回筛选" : "返回首页"}</a>
+      ${previous ? `<a class="btn review-nav-prev" href="${practiceLink(previous)}">← 上一题</a>` : '<button class="btn review-nav-prev" type="button" disabled>← 上一题</button>'}
+      <a class="btn review-nav-home" href="${practiceScope === "browse" ? escapeHtml(homeUrl(practiceFilters)) : "/"}">${practiceScope === "browse" ? "返回筛选" : "返回首页"}</a>
       ${nextControl}
     </nav>`
 
@@ -1384,8 +1441,19 @@ async function loadRankings() {
   $("page-status").textContent = "正在加载排名…"
   try {
     const { commonRankings, userById } = await api("GET", `/api/problem-sets/${PSID}/common-rankings`)
-    $("page-status").textContent = commonRankings.length ? "" : "暂无排名，正式提交评测完成后会显示成绩。"
-    $("page-body").innerHTML = commonRankings.length ? `
+    if (!commonRankings.length) {
+      $("page-status").textContent = ""
+      $("page-body").innerHTML = `
+        <section class="practice-card practice-empty-state">
+          <span class="practice-empty-badge">公开刷题版</span>
+          <h2>暂无排名数据</h2>
+          <p>所有刷题进度、错题集与代码草稿均保存在你自己的浏览器本地，不会上传排名。</p>
+          <a class="btn primary" href="/">返回首页刷题</a>
+        </section>`
+      return
+    }
+    $("page-status").textContent = ""
+    $("page-body").innerHTML = `
       <div class="exam-table-wrap">
         <table class="exam-table" aria-label="排名">
           <thead><tr><th>名次</th><th>考生</th><th>分数</th></tr></thead>
@@ -1395,7 +1463,7 @@ async function loadRankings() {
             <td>${escapeHtml(totalScore)}</td>
           </tr>`).join("")}</tbody>
         </table>
-      </div>` : ""
+      </div>`
   } catch (e) {
     $("page-status").textContent = "读取排名失败：" + e.message
   }

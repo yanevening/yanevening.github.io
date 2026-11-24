@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
 <title>PTA 刷题</title>
-<link rel="stylesheet" href="/style.css?v=announcement-20261119">
+<link rel="stylesheet" href="/style.css?v=ui-20261124">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 </head>
 <body>
@@ -23,13 +24,17 @@
 
 <div id="exam-app">
   <header class="topbar">
-    <a id="nav-home" class="practice-brand" href="/"><span class="practice-logo" aria-hidden="true">P</span>PTA 刷题</a>
-    <span class="ps-name" id="ps-name"></span>
-    <nav class="practice-menu" aria-label="主导航">
-      <a id="nav-problems" href="/?page=problems">题库管理</a>
-      <a id="nav-submissions" href="/?page=submissions">提交记录</a>
-      <a id="nav-rankings" href="/?page=rankings">排名</a>
-    </nav>
+    <div class="topbar-inner">
+      <a id="nav-home" class="practice-brand" href="/"><span class="practice-logo" aria-hidden="true">P</span>PTA 刷题</a>
+      <span class="ps-name" id="ps-name"></span>
+      <nav class="practice-menu" aria-label="主导航">
+        <a id="nav-problems" class="nav-primary" href="/?page=problems">题库管理</a>
+        <span class="nav-secondary">
+          <a id="nav-submissions" class="nav-muted" href="/?page=submissions">提交记录</a>
+          <a id="nav-rankings" class="nav-muted" href="/?page=rankings">排名</a>
+        </span>
+      </nav>
+    </div>
   </header>
 
   <main id="page-view" class="exam-page" hidden>
@@ -45,13 +50,18 @@
   <main id="answer-view" hidden>
     <section id="program-answer-progress" class="answer-progress" aria-live="polite"></section>
     <div class="titlebar">
-      <button class="btn ghost" id="btn-prev-problem" disabled><svg class="icon"><use href="#pat-left"/></svg>上一题</button>
-      <button class="btn ghost" id="btn-next-problem" disabled><svg class="icon"><use href="#pat-right"/></svg>下一题</button>
-      <h1 id="problem-title">7-1 求一组数组中的平均数</h1>
+      <div class="titlebar-nav">
+        <button class="btn ghost" id="btn-prev-problem" disabled><svg class="icon"><use href="#pat-left"/></svg>上一题</button>
+        <button class="btn ghost" id="btn-next-problem" disabled><svg class="icon"><use href="#pat-right"/></svg>下一题</button>
+      </div>
+      <div class="titlebar-heading">
+        <span class="problem-title-badge" id="problem-label" hidden></span>
+        <h1 id="problem-title">7-1 求一组数组中的平均数</h1>
+      </div>
       <div class="actions">
         <a class="btn ghost" id="back-to-filter" hidden>返回筛选</a>
-        <button class="btn ghost" id="btn-fullscreen">全屏浏览</button>
         <button class="btn ghost" id="btn-layout">切换布局</button>
+        <button class="btn ghost" id="btn-fullscreen">全屏浏览</button>
       </div>
     </div>
 
@@ -120,7 +130,10 @@
 <dialog id="site-announcement" class="site-announcement" aria-labelledby="announcement-title" aria-describedby="announcement-message">
   <form method="dialog">
     <header>
-      <h2 id="announcement-title">刷题站公告</h2>
+      <div class="announcement-head-title">
+        <span class="announcement-badge" aria-hidden="true">公告</span>
+        <h2 id="announcement-title">刷题站公告</h2>
+      </div>
       <button class="btn ghost" aria-label="关闭公告">✕</button>
     </header>
     <div class="announcement-message" id="announcement-message">
@@ -146,6 +159,6 @@
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="/app.js?v=announcement-20261119"></script>
+<script type="module" src="/app.js?v=ui-20261124"></script>
 </body>
 </html>
