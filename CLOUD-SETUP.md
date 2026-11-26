@@ -12,8 +12,10 @@
 
 迁移仅在已有账号恰好为一个时把它设为初始管理员。多个已有账号时，需要项目所有者在 SQL Editor 指定管理员。
 
-登录界面位于 `/?page=login`，点站点右上角的「登录」即可进入。新增用户仍通过 Supabase Authentication 创建，角色调整在刷题站账号中心完成。停用会阻止账号访问云端记录，访客仍可使用公开题库。
+登录界面位于 `/?page=login`，点站点右上角的「登录」即可进入。新增用户仍通过 Supabase Authentication 创建，角色调整在刷题站账号中心完成。停用会阻止账号访问云端记录，未登录和停用账号进入登录页，只有启用账号可进入刷题界面。
 
 以后若开放自助登录，需先在 Supabase 重新允许注册。接入 GitHub OAuth 后可开启 `githubLogin`。接入自定义 SMTP 后可开启 `emailRegistration`，并确认普通访客能收到验证邮件。
 
 [Supabase GitHub 登录](https://supabase.com/docs/guides/auth/social-login/auth-github) · [Supabase 邮件配置](https://supabase.com/docs/guides/auth/auth-smtp) · [Supabase 公钥](https://supabase.com/docs/guides/getting-started/api-keys)
+
+所有刷题页面均要求登录。退出后返回登录页，旧版本访客记录可在登录后导入。GitHub Pages 的静态文件和公开源码仍可直接访问，题库保密需要受认证保护的服务端存储。

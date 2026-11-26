@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="auth-pending">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +7,7 @@
 <title>PTA 刷题</title>
 <link rel="stylesheet" href="/style.css?v=roles-20261126">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<link rel="stylesheet" href="/account.css?v=20261126">
+<link rel="stylesheet" href="/account.css?v=login-required-20261126">
 </head>
 <body>
 
@@ -179,6 +179,7 @@
       <p id="cloud-account-permissions"></p>
       <p id="cloud-account-import-note" hidden></p>
       <div class="account-actions">
+        <a class="btn primary" id="cloud-account-enter" href="/" hidden>进入刷题站</a>
         <button class="btn primary" id="cloud-account-sync" type="button">立即同步</button>
         <button class="btn" id="cloud-account-import" type="button" hidden>导入本机记录</button>
         <button class="btn ghost" id="cloud-account-logout" type="button">退出登录</button>
@@ -186,7 +187,6 @@
       <section id="cloud-admin-panel" hidden><div class="account-admin-header"><h3>账号权限管理</h3><button type="button" class="btn ghost" id="cloud-admin-refresh">刷新</button></div><p>可以调整其他账号的角色和使用状态。</p><div id="cloud-admin-users"></div><p id="cloud-admin-message" role="status"></p></section>
     </section>
     <p id="cloud-account-message" class="account-message" role="status" aria-live="polite"></p>
-    <a id="cloud-guest-link" class="account-guest" href="/">先以访客身份练习</a>
   </div>
 </dialog>
 
@@ -206,6 +206,6 @@
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="/app.js?v=roles-20261126"></script>
+<script type="module" src="/app.js?v=login-required-20261126"></script>
 </body>
 </html>

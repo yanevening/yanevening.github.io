@@ -1,6 +1,6 @@
-import { api } from "./pages-api.js?v=practice-20261118"
+import { api } from "./pages-api.js?v=login-required-20261126"
 import { initCloudAccount, signedIn, readAccountDraft, readAccountRecords,
-         saveAccountRecord, syncAccountDraft } from "./cloud-account.js?v=20261126"
+         saveAccountRecord, syncAccountDraft } from "./cloud-account.js?v=login-required-20261126"
 // PTA 复刻版前端逻辑：对齐线上 exam-app 的请求序列与轮询节奏。
 import { createEditor, setLanguage, setFontSize, setTabSize,
          getText, focusEditor } from "./vendor/cm.js"
@@ -1514,10 +1514,10 @@ async function bootExamPage(title, navId, load) {
   await load()
 }
 
-await initCloudAccount()
-loadPracticeAnswers()
+const accessReady = await initCloudAccount()
+if (accessReady) loadPracticeAnswers()
 const startupQuery = new URLSearchParams(location.search)
-if (startupQuery.get("page") === "login") {
+if (!accessReady || startupQuery.get("page") === "login") {
   document.title = "登录 · PTA 刷题"
 } else if (!startupQuery.has("page") && !requestedProblemId && !startupQuery.has("panel") && !startupQuery.has("layout")) {
   $("exam-app").classList.add("practice-home")

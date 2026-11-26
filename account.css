@@ -1,3 +1,4 @@
+.auth-pending #exam-app { display: none; }
 .account-dialog {
   width: min(1040px, calc(100% - 48px));
   max-height: calc(100dvh - 48px);
@@ -42,8 +43,6 @@
 .account-submit:hover { transform: translateY(-1px); box-shadow: 0 7px 18px #1d63e52e; }
 .account-submit:disabled { transform: none; opacity: .7; }
 .account-help { margin: 8px 0; text-align: center; color: #7a879a; font-size: 12px; }
-.account-guest { display: block; margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf0f5; color: #56708f; font-size: 14px; text-align: center; text-decoration: none; }
-.account-guest:hover { color: #1d63e5; }
 .account-message:not(:empty) { padding: 12px 14px; background: #fff4ed; color: #9d441b; font-size: 14px; border-radius: 9px; line-height: 1.6; animation: account-enter .2s; }
 .account-identity { display: flex; gap: 12px; align-items: center; margin: 28px 0 20px; }
 .account-avatar { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 14px; color: #2563cc; background: #edf3ff; font-size: 20px; font-weight: 700; }

@@ -1,3 +1,5 @@
+import { canUseSite } from "./cloud-account.js?v=login-required-20261126"
+
 const examRoutes = "/api/exams/2121142069793841152"
 const bankRoutes = "/api/problem-sets/2121133349609480192"
 const storagePrefix = "pta-pages:"
@@ -165,6 +167,7 @@ function startRun(detail) {
 }
 
 export async function api(method, url, body) {
+  if (!canUseSite()) throw new Error("请先登录已启用的账号")
   const path = url.split("?", 1)[0]
   if (path === bankRoutes + "/exams") {
     const { name } = await loadBank()

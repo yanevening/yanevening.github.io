@@ -13,6 +13,20 @@ let client, account, cache, syncTimer, syncTask
 let downloadNeeded = false
 let profile
 const loginRoute = new URLSearchParams(location.search).get("page") === "login"
+function loginUrl() {
+  return "/?" + new URLSearchParams({ page: "login", next: location.pathname + location.search })
+}
+
+function destinationUrl() {
+  const next = new URLSearchParams(location.search).get("next")
+  const destination = next?.startsWith("/") ? new URL(next, location.origin) : null
+  return destination?.origin === location.origin && destination.searchParams.get("page") !== "login"
+    ? destination.href : "/"
+}
+
+export function canUseSite() {
+  return Boolean(account && profile?.enabled === true)
+}
 const safeText = text => String(text ?? "").replace(/[&<>"']/g, char => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 })[char])
@@ -127,6 +141,7 @@ async function sync({ download = false } = {}) {
       await loadProfile()
       if (!profile.enabled) {
         status("账号已停用")
+        if (!loginRoute) location.replace(loginUrl())
         return false
       }
       await push()
@@ -247,6 +262,8 @@ export async function initCloudAccount() {
         : profile?.role === "admin" ? "同步个人记录，并管理站点账号的角色和状态。"
         : "同步自己的答题进度、错题和代码草稿。"
       const active = profile?.enabled === true
+      $("cloud-account-enter").hidden = !active || !loginRoute
+      $("cloud-account-enter").href = destinationUrl()
       syncButton.hidden = !active
       $("cloud-admin-panel").hidden = !active || profile.role !== "admin"
       $("cloud-account-email").textContent = account.email ?? ""
@@ -261,13 +278,13 @@ export async function initCloudAccount() {
   }
   button.onclick = () => {
     if (!signedIn()) {
-      const back = new URLSearchParams({ page: "login", next: location.pathname + location.search })
-      location.href = "/?" + back
+      location.href = loginUrl()
     } else showDialog()
   }
-  $("cloud-account-close").onclick = () => loginRoute ? location.assign("/") : dialog.close()
+  $("cloud-account-close").hidden = loginRoute
+  $("cloud-account-close").onclick = () => dialog.close()
   dialog.addEventListener("cancel", event => {
-    if (loginRoute) { event.preventDefault(); location.href = "/" }
+    if (loginRoute) event.preventDefault()
   })
   $("cloud-password-toggle").onclick = () => {
     const input = $("cloud-auth-password")
@@ -278,7 +295,11 @@ export async function initCloudAccount() {
     $("cloud-password-toggle").setAttribute("aria-pressed", String(show))
   }
   button.hidden = false
-  if (!configured) { if (loginRoute) showDialog(); return }
+  if (!configured) {
+    if (loginRoute) showDialog()
+    else location.replace(loginUrl())
+    return false
+  }
 
   let busy = false, changingSession = false
   async function act(operation, changesSession = false) {
@@ -327,10 +348,7 @@ export async function initCloudAccount() {
           showDialog()
           return
         }
-        const next = new URLSearchParams(location.search).get("next")
-        const destination = next?.startsWith("/") ? new URL(next, location.origin) : null
-        location.assign(destination?.origin === location.origin && destination.searchParams.get("page") !== "login"
-          ? destination.href : "/")
+        location.assign(destinationUrl())
       }
       else message.textContent = "请在当前浏览器打开验证邮件里的链接，完成注册。"
     }, true)
@@ -421,10 +439,16 @@ export async function initCloudAccount() {
     })
     window.addEventListener("online", () => { void sync() })
     window.addEventListener("pageshow", event => { if (event.persisted) location.reload() })
+    window.addEventListener("pagehide", () => {
+      document.documentElement.classList.add("auth-pending")
+    })
   } catch {
     status("同步失败")
   } finally {
     button.disabled = false
     if (loginRoute) showDialog()
+    else if (!canUseSite()) location.replace(loginUrl())
+    else document.documentElement.classList.remove("auth-pending")
   }
+  return canUseSite()
 }
