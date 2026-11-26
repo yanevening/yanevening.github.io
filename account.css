@@ -1,45 +1,45 @@
 .auth-pending #exam-app { display: none; }
 .account-dialog {
-  width: min(1040px, calc(100% - 48px));
+  width: min(780px, calc(100% - 40px));
   max-height: calc(100dvh - 48px);
   padding: 0;
   border: 0;
-  border-radius: 24px;
+  border-radius: 18px;
   overflow: auto;
 }
-.account-dialog[open] { display: grid; grid-template-columns: .95fr 1.05fr; animation: account-enter .3s ease both; }
+.account-dialog[open] { display: grid; grid-template-columns: .85fr 1.15fr; animation: account-enter .3s ease both; }
 .account-dialog::backdrop { background: rgb(13 24 46 / 55%); backdrop-filter: blur(6px); }
 .account-story {
   display: flex; flex-direction: column; justify-content: space-between;
-  padding: 34px; color: #fff; background: radial-gradient(ellipse at 10% 10%, #356bd2, transparent 65%), #102b60;
+  padding: 26px; color: #fff; background: radial-gradient(ellipse at 10% 10%, #356bd2, transparent 65%), #102b60;
 }
 .account-brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; }
-.account-story-copy { padding: 55px 0 28px; }
+.account-story-copy { padding: 24px 0 20px; }
 .account-eyebrow { margin: 0 0 12px; font-size: 12px; font-weight: 650; letter-spacing: .14em; }
 .account-story .account-eyebrow { color: #b5d1ff; }
-.account-story h2 { margin: 0; font-size: clamp(30px, 3.5vw, 42px); line-height: 1.45; letter-spacing: -.04em; }
+.account-story h2 { margin: 0; font-size: 30px; line-height: 1.4; letter-spacing: -.04em; }
 .account-story-copy > p { line-height: 1.9; font-size: 15px; color: #c8d8f4; }
-.account-subjects { display: grid; gap: 12px; margin-top: 32px; }
-.account-subjects > div { display: flex; align-items: center; gap: 14px; padding: 15px 16px; border: 1px solid #ffffff24; border-radius: 12px; background: #ffffff08; transition: background .2s, transform .2s; }
+.account-subjects { display: grid; gap: 8px; margin-top: 20px; }
+.account-subjects > div { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #ffffff24; border-radius: 12px; background: #ffffff08; transition: background .2s, transform .2s; }
 .account-subjects > div:hover { background: #ffffff14; transform: translateX(4px); }
-.subject-mark { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 10px; background: #ffffff10; color: #b8d5ff; font: 16px Consolas, monospace; }
+.subject-mark { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 10px; background: #ffffff10; color: #b8d5ff; font: 16px Consolas, monospace; }
 .account-subjects strong { font-size: 14px; color: #f0f5ff; }
 .account-subjects p { margin: 4px 0 0; font-size: 12px; color: #b0c7eb; }
 .account-story-foot { margin: 0; font-size: 12px; color: #adc5ec; }
-.account-main { padding: 48px 42px 28px; min-width: 0; background: #fff; }
-.account-main > header { align-items: flex-start; margin-bottom: 18px; }
+.account-main { padding: 34px 30px 26px; min-width: 0; background: #fff; }
+.account-main > header { align-items: flex-start; margin-bottom: 14px; }
 .account-main .account-eyebrow { color: #5673a1; }
-.account-main h2 { font-size: 28px; letter-spacing: -.03em; }
+.account-main h2 { font-size: 25px; letter-spacing: -.03em; }
 .account-subtitle { color: #66748b; font-size: 14px; line-height: 1.8; }
-.account-dialog #cloud-auth-form { gap: 10px; margin-top: 30px; }
+.account-dialog #cloud-auth-form { gap: 8px; margin-top: 24px; }
 .account-dialog label { font-size: 14px; font-weight: 600; color: #34425a; }
-.account-dialog input { height: 48px; border-color: #dce3ee; border-radius: 10px; padding: 12px 14px; font-size: 16px; outline: none; transition: border-color .18s, box-shadow .18s; }
+.account-dialog input { height: 44px; border-color: #dce3ee; border-radius: 10px; padding: 12px 14px; font-size: 16px; outline: none; transition: border-color .18s, box-shadow .18s; }
 .account-dialog input:focus { border-color: #3675eb; box-shadow: 0 0 0 4px #3675eb14; }
 .account-dialog input::placeholder { color: #8995a9; }
 .account-password { position: relative; margin-bottom: 12px; }
 .account-password input { padding-right: 65px; }
-.account-password button { position: absolute; top: 1px; right: 5px; height: 46px; border: 0; background: transparent; color: #526886; padding: 0 12px; font: inherit; font-size: 13px; cursor: pointer; }
-.account-submit { width: 100%; min-height: 48px; border-radius: 10px; font-size: 15px; transition: transform .18s, box-shadow .18s; }
+.account-password button { position: absolute; top: 1px; right: 5px; height: 42px; border: 0; background: transparent; color: #526886; padding: 0 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.account-submit { width: 100%; min-height: 44px; border-radius: 10px; font-size: 15px; transition: transform .18s, box-shadow .18s; }
 .account-submit:hover { transform: translateY(-1px); box-shadow: 0 7px 18px #1d63e52e; }
 .account-submit:disabled { transform: none; opacity: .7; }
 .account-help { margin: 8px 0; text-align: center; color: #7a879a; font-size: 12px; }
@@ -62,22 +62,22 @@
 .account-user .btn { margin-left: auto; }
 .account-route { background: radial-gradient(ellipse at 85% 15%, #dce8ff 0, transparent 55%), #eef3fa; min-height: 100dvh; }
 .account-route #exam-app { display: none; }
-.account-route .account-dialog { position: relative; margin: 40px auto; max-height: none; min-height: min(640px, calc(100dvh - 80px)); box-shadow: 0 24px 80px #1b3a6920; }
+.account-route .account-dialog { position: fixed; inset: 0; margin: auto; height: fit-content; max-height: calc(100dvh - 40px); min-height: 0; box-shadow: 0 24px 80px #1b3a6920; }
 .account-route .account-dialog::backdrop { background: transparent; backdrop-filter: none; }
 @keyframes account-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 740px) {
   .account-dialog { width: calc(100% - 24px); max-height: calc(100dvh - 24px); border-radius: 18px; }
   .account-dialog[open] { grid-template-columns: 1fr; }
-  .account-story { padding: 22px 24px; }
-  .account-story-copy { padding: 22px 0 0; }
-  .account-story h2 { font-size: 27px; line-height: 1.35; }
+  .account-story { padding: 20px 24px; }
+  .account-story-copy { padding: 14px 0 0; }
+  .account-story h2 { font-size: 23px; line-height: 1.35; }
   .account-story h2 br { display: none; }
   .account-story-copy > p, .account-story-foot, .account-subjects, .account-story-copy .account-eyebrow { display: none; }
-  .account-main { padding: 28px 24px 24px; }
-  .account-main h2 { font-size: 25px; }
+  .account-main { padding: 24px; }
+  .account-main h2 { font-size: 23px; }
   .account-dialog #cloud-auth-form { margin-top: 24px; }
-  .account-route .account-dialog { margin: 12px auto; min-height: calc(100dvh - 24px); }
-  .account-route .account-story { padding-top: max(22px, env(safe-area-inset-top)); }
+  .account-route .account-dialog { width: min(420px, calc(100% - 24px)); margin: auto; max-height: calc(100dvh - 24px); min-height: 0; }
+  .account-route .account-story { padding-top: max(20px, env(safe-area-inset-top)); }
   .account-dialog .account-actions { gap: 10px; }
   .account-dialog .account-actions > .btn { min-height: 44px; }
   .account-button { min-height: 40px; }
