@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffffff">
 <title>PTA 刷题</title>
-<link rel="stylesheet" href="/style.css?v=cloud-20261124">
+<link rel="stylesheet" href="/style.css?v=roles-20261126">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="stylesheet" href="/account.css?v=20261126">
 </head>
 <body>
 
@@ -145,31 +146,48 @@
 </dialog>
 
 <dialog id="cloud-account-dialog" class="account-dialog" aria-labelledby="cloud-account-title">
-  <header>
-    <h2 id="cloud-account-title">刷题账号</h2>
-    <button class="btn ghost" id="cloud-account-close" type="button" aria-label="关闭账号弹窗">✕</button>
-  </header>
-  <p id="cloud-auth-note" hidden>请使用管理员分配的邮箱和密码登录。</p>
-  <form id="cloud-auth-form" hidden>
-    <label>邮箱<input id="cloud-auth-email" type="email" name="email" autocomplete="username" required></label>
-    <label>密码<input id="cloud-auth-password" type="password" name="password" autocomplete="current-password" required></label>
-    <div class="account-actions">
-      <button class="btn primary" type="submit" value="login">登录</button>
-      <button class="btn" id="cloud-auth-register" type="submit" value="register" hidden>注册</button>
+  <aside class="account-story" aria-label="多学科学习空间">
+    <a class="account-brand" href="/"><span class="practice-logo">P</span> PTA 刷题</a>
+    <div class="account-story-copy"><span class="account-eyebrow">LEARNING SPACE</span>
+      <h2>每一次练习，<br>都算数。</h2>
+      <p>保存今天的思考，<br>在下一次打开时接着进步。</p>
+      <div class="account-subjects" aria-label="学习方向">
+        <div><span class="subject-mark">{ }</span><div><strong>程序设计</strong><p>Java 与编程基础</p></div></div>
+        <div><span class="subject-mark">▤</span><div><strong>数据库</strong><p>数据建模与 SQL</p></div></div>
+        <div><span class="subject-mark">&lt;/&gt;</span><div><strong>网页设计</strong><p>页面布局与交互</p></div></div>
+      </div>
     </div>
-  </form>
-  <button class="btn" id="cloud-auth-github" type="button" hidden>使用 GitHub 登录</button>
-  <section id="cloud-account-panel" hidden>
-    <p id="cloud-account-email"></p>
-    <p id="cloud-account-status" role="status"></p>
-    <p id="cloud-account-import-note" hidden></p>
-    <div class="account-actions">
-      <button class="btn primary" id="cloud-account-sync" type="button">立即同步</button>
-      <button class="btn" id="cloud-account-import" type="button" hidden>导入本机记录</button>
-      <button class="btn ghost" id="cloud-account-logout" type="button">退出登录</button>
-    </div>
-  </section>
-  <p id="cloud-account-message" role="status"></p>
+    <p class="account-story-foot">答题进度 · 错题复习 · 代码草稿</p>
+  </aside>
+  <div class="account-main">
+    <header><div><p class="account-eyebrow">你的学习空间</p><h2 id="cloud-account-title">欢迎回来</h2></div>
+      <button class="btn ghost" id="cloud-account-close" type="button" aria-label="关闭账号弹窗">✕</button></header>
+    <p id="cloud-auth-note" class="account-subtitle" hidden>使用管理员分配的账号，继续你的学习进度。</p>
+    <form id="cloud-auth-form" hidden>
+      <label for="cloud-auth-email">邮箱</label>
+      <input id="cloud-auth-email" type="email" name="email" placeholder="name@example.com" autocomplete="username" required>
+      <label for="cloud-auth-password">密码</label>
+      <div class="account-password"><input id="cloud-auth-password" type="password" name="password" placeholder="请输入密码" autocomplete="current-password" required><button id="cloud-password-toggle" type="button" aria-label="显示密码" aria-pressed="false">显示</button></div>
+      <button class="btn primary account-submit" id="cloud-login-submit" type="submit" value="login">登录并继续</button>
+      <button class="btn" id="cloud-auth-register" type="submit" value="register" hidden>注册账号</button>
+      <p class="account-help">账号开通或密码重置，请联系管理员。</p>
+    </form>
+    <button class="btn" id="cloud-auth-github" type="button" hidden>使用 GitHub 登录</button>
+    <section id="cloud-account-panel" hidden>
+      <div class="account-identity"><span class="account-avatar" aria-hidden="true">P</span><div><strong id="cloud-account-role">普通用户</strong><p id="cloud-account-email"></p></div></div>
+      <p id="cloud-account-status" class="account-sync-status" role="status"></p>
+      <p id="cloud-account-permissions"></p>
+      <p id="cloud-account-import-note" hidden></p>
+      <div class="account-actions">
+        <button class="btn primary" id="cloud-account-sync" type="button">立即同步</button>
+        <button class="btn" id="cloud-account-import" type="button" hidden>导入本机记录</button>
+        <button class="btn ghost" id="cloud-account-logout" type="button">退出登录</button>
+      </div>
+      <section id="cloud-admin-panel" hidden><div class="account-admin-header"><h3>账号权限管理</h3><button type="button" class="btn ghost" id="cloud-admin-refresh">刷新</button></div><p>可以调整其他账号的角色和使用状态。</p><div id="cloud-admin-users"></div><p id="cloud-admin-message" role="status"></p></section>
+    </section>
+    <p id="cloud-account-message" class="account-message" role="status" aria-live="polite"></p>
+    <a id="cloud-guest-link" class="account-guest" href="/">先以访客身份练习</a>
+  </div>
 </dialog>
 
 <div class="modal-mask" id="modal" hidden>
@@ -188,6 +206,6 @@
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="/app.js?v=cloud-20261124"></script>
+<script type="module" src="/app.js?v=roles-20261126"></script>
 </body>
 </html>

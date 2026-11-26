@@ -11,6 +11,19 @@ const $ = id => document.getElementById(id)
 
 let client, account, cache, syncTimer, syncTask
 let downloadNeeded = false
+let profile
+const loginRoute = new URLSearchParams(location.search).get("page") === "login"
+const safeText = text => String(text ?? "").replace(/[&<>"']/g, char => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[char])
+
+async function loadProfile() {
+  const { data, error } = await client.from("account_profiles").select("role,enabled")
+    .eq("user_id", account.id).single()
+  if (error) throw error
+  profile = data
+  return profile
+}
 
 function records(prefix) {
   const entries = []
@@ -111,6 +124,11 @@ async function sync({ download = false } = {}) {
   status("同步中")
   const task = (async () => {
     try {
+      await loadProfile()
+      if (!profile.enabled) {
+        status("账号已停用")
+        return false
+      }
       await push()
       if (downloadNeeded) {
         await pull()
@@ -201,6 +219,7 @@ function authMessage(error) {
 }
 
 export async function initCloudAccount() {
+  if (loginRoute) document.body.classList.add("account-route")
   const button = $("cloud-account-button")
   const dialog = $("cloud-account-dialog")
   const form = $("cloud-auth-form")
@@ -220,19 +239,46 @@ export async function initCloudAccount() {
     githubButton.hidden = !configured || signedIn() || !cloudConfig.githubLogin
     $("cloud-account-panel").hidden = !signedIn()
     if (account) {
+      $("cloud-account-title").textContent = "我的学习空间"
+      $("cloud-account-role").textContent = profile?.enabled === false ? "账号已停用"
+        : profile?.role === "admin" ? "管理员" : profile ? "普通用户" : "权限待确认"
+      $("cloud-account-permissions").textContent = profile?.enabled === false
+        ? "请联系管理员恢复账号使用权限。"
+        : profile?.role === "admin" ? "同步个人记录，并管理站点账号的角色和状态。"
+        : "同步自己的答题进度、错题和代码草稿。"
+      const active = profile?.enabled === true
+      syncButton.hidden = !active
+      $("cloud-admin-panel").hidden = !active || profile.role !== "admin"
       $("cloud-account-email").textContent = account.email ?? ""
       importEntries = guestRecords()
-      importButton.hidden = !importEntries.size
+      importButton.hidden = !active || !importEntries.size
       savedImport.hidden = importButton.hidden
       savedImport.textContent = importEntries.size
         ? `此浏览器有 ${importEntries.size} 条访客记录可导入，账号里已有的记录优先保留。` : ""
     }
     dialog.showModal()
+    if (account && profile?.enabled && profile.role === "admin") void refreshAccounts()
   }
-  button.onclick = showDialog
-  $("cloud-account-close").onclick = () => dialog.close()
+  button.onclick = () => {
+    if (!signedIn()) {
+      const back = new URLSearchParams({ page: "login", next: location.pathname + location.search })
+      location.href = "/?" + back
+    } else showDialog()
+  }
+  $("cloud-account-close").onclick = () => loginRoute ? location.assign("/") : dialog.close()
+  dialog.addEventListener("cancel", event => {
+    if (loginRoute) { event.preventDefault(); location.href = "/" }
+  })
+  $("cloud-password-toggle").onclick = () => {
+    const input = $("cloud-auth-password")
+    const show = input.type === "password"
+    input.type = show ? "text" : "password"
+    $("cloud-password-toggle").textContent = show ? "隐藏" : "显示"
+    $("cloud-password-toggle").setAttribute("aria-label", show ? "隐藏密码" : "显示密码")
+    $("cloud-password-toggle").setAttribute("aria-pressed", String(show))
+  }
   button.hidden = false
-  if (!configured) return
+  if (!configured) { if (loginRoute) showDialog(); return }
 
   let busy = false, changingSession = false
   async function act(operation, changesSession = false) {
@@ -240,6 +286,8 @@ export async function initCloudAccount() {
     busy = true
     changingSession = changesSession
     message.textContent = ""
+    form.setAttribute("aria-busy", "true")
+    $("cloud-login-submit").textContent = "正在处理…"
     const buttons = dialog.querySelectorAll("button:not(#cloud-account-close)")
     buttons.forEach(item => { item.disabled = true })
     try { await operation() }
@@ -248,6 +296,8 @@ export async function initCloudAccount() {
       buttons.forEach(item => { item.disabled = false })
       busy = false
       changingSession = false
+      form.setAttribute("aria-busy", "false")
+      $("cloud-login-submit").textContent = "登录并继续"
     }
   }
 
@@ -269,7 +319,19 @@ export async function initCloudAccount() {
         : await client.auth.signInWithPassword(credentials)
       if (result.error) throw result.error
       passwordInput.value = ""
-      if (result.data.session) location.reload()
+      if (result.data.session) {
+        account = result.data.session.user
+        cache = cachePrefix + account.id + ":"
+        await loadProfile()
+        if (!profile.enabled) {
+          showDialog()
+          return
+        }
+        const next = new URLSearchParams(location.search).get("next")
+        const destination = next?.startsWith("/") ? new URL(next, location.origin) : null
+        location.assign(destination?.origin === location.origin && destination.searchParams.get("page") !== "login"
+          ? destination.href : "/")
+      }
       else message.textContent = "请在当前浏览器打开验证邮件里的链接，完成注册。"
     }, true)
   }
@@ -299,8 +361,51 @@ export async function initCloudAccount() {
   logoutButton.onclick = () => void act(async () => {
     const { error } = await client.auth.signOut({ scope: "local" })
     if (error) throw error
-    location.reload()
+    location.assign("/?page=login")
   }, true)
+
+  async function refreshAccounts() {
+    const target = $("cloud-admin-users")
+    const feedback = $("cloud-admin-message")
+    feedback.textContent = "正在加载账号…"
+    try {
+      const { data, error } = await client.rpc("list_practice_accounts")
+      if (error) throw error
+      target.innerHTML = data.map(user => {
+        const own = user.user_id === account.id
+        return `<form class="account-user" data-user="${safeText(user.user_id)}">
+          <strong>${safeText(user.email)}${own ? " · 当前账号" : ""}</strong>
+          <div class="account-user-controls"><select name="role" aria-label="账号角色" ${own ? "disabled" : ""}>
+          <option value="student" ${user.role === "student" ? "selected" : ""}>普通用户</option>
+          <option value="admin" ${user.role === "admin" ? "selected" : ""}>管理员</option></select>
+          <label><input type="checkbox" name="enabled" ${user.enabled ? "checked" : ""} ${own ? "disabled" : ""}>启用</label>
+          <button class="btn" type="submit" ${own ? "disabled" : ""}>保存</button></div></form>`
+      }).join("")
+      feedback.textContent = `共 ${data.length} 个账号`
+    } catch {
+      target.replaceChildren()
+      feedback.textContent = "账号列表加载失败，请确认管理员权限并重试。"
+    }
+  }
+  $("cloud-admin-refresh").onclick = refreshAccounts
+  $("cloud-admin-users").onsubmit = async event => {
+    event.preventDefault()
+    const row = event.target
+    const save = row.querySelector("button")
+    save.disabled = true
+    try {
+      const { error } = await client.rpc("set_practice_account", {
+        target_user: row.dataset.user, new_role: row.elements.role.value,
+        new_enabled: row.elements.enabled.checked,
+      })
+      if (error) throw error
+      await refreshAccounts()
+      $("cloud-admin-message").textContent = "权限已保存。"
+    } catch {
+      $("cloud-admin-message").textContent = "保存失败，请确认权限和网络后重试。"
+      save.disabled = false
+    }
+  }
   button.disabled = true
   try {
     await loadClient()
@@ -320,5 +425,6 @@ export async function initCloudAccount() {
     status("同步失败")
   } finally {
     button.disabled = false
+    if (loginRoute) showDialog()
   }
 }

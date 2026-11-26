@@ -8,6 +8,12 @@
 
 账号同步涵盖客观题答案、错题状态、公开样例作答状态和编程草稿。访客原有数据保留在本机，登录后可在账号菜单里导入，已有的账号记录优先。自行导入的题库和题目隐藏设置仍保存在当前浏览器。
 
+账号角色使用 [权限迁移](supabase/migrations/20261126000000_account_roles.sql)。普通用户同步自己的练习记录。管理员在账号中心管理其他账号的角色和启用状态。新账号默认是普通用户，停用账号的云端读写会被数据库拒绝。管理员自己的角色和状态由数据库保护，可由其他管理员调整。
+
+迁移仅在已有账号恰好为一个时把它设为初始管理员。多个已有账号时，需要项目所有者在 SQL Editor 指定管理员。
+
+登录界面位于 `/?page=login`，点站点右上角的「登录」即可进入。新增用户仍通过 Supabase Authentication 创建，角色调整在刷题站账号中心完成。停用会阻止账号访问云端记录，访客仍可使用公开题库。
+
 以后若开放自助登录，需先在 Supabase 重新允许注册。接入 GitHub OAuth 后可开启 `githubLogin`。接入自定义 SMTP 后可开启 `emailRegistration`，并确认普通访客能收到验证邮件。
 
 [Supabase GitHub 登录](https://supabase.com/docs/guides/auth/social-login/auth-github) · [Supabase 邮件配置](https://supabase.com/docs/guides/auth/auth-smtp) · [Supabase 公钥](https://supabase.com/docs/guides/getting-started/api-keys)
