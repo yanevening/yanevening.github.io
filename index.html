@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#6a5ae0">
 <title>PTA 刷题</title>
-<link rel="stylesheet" href="/style.css?v=roles-20261126">
+<link rel="stylesheet" href="/style.css?v=modao-20261126">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<link rel="stylesheet" href="/account.css?v=compact-20261126">
+<link rel="stylesheet" href="/account.css?v=modao-20261126">
 </head>
 <body>
 
@@ -21,21 +21,30 @@
   <symbol id="pat-bug" viewBox="0 0 24 24"><path d="M14 4h-4l1 3h2l1-3zM7 9h10a5 5 0 0 1 0 10H7A5 5 0 0 1 7 9zm-3 .5h2v2H4v-2zm16 0h2v2h-2v-2zM4 14h2v2H4v-2zm16 0h2v2h-2v-2zM6 18l-2 2 1.4 1.4L7.5 19.3 6 18zm12 0-1.5 1.3 2.1 2.1L20 20l-2-2z"/></symbol>
   <symbol id="pat-fullscreen" viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4zm11-5h5v5h-2V6h-3V4zM4 15h2v3h3v2H4v-5zm14 0h2v5h-5v-2h3v-3z"/></symbol>
   <symbol id="pat-info" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
+  <symbol id="pat-home" viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="pat-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5V5.5zM4 19.5A2.5 2.5 0 0 1 6.5 17H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="pat-history" viewBox="0 0 24 24"><path d="M12 7v5l3 2M21 12a9 9 0 1 1-2.64-6.36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="pat-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM5 5h3v3H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm11 0h3a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-3V5zM12 13v4m-4 3h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="pat-user" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 
 <div id="exam-app">
   <header class="topbar">
     <div class="topbar-inner">
-      <a id="nav-home" class="practice-brand" href="/"><span class="practice-logo" aria-hidden="true">P</span>PTA 刷题</a>
+      <a class="practice-brand" href="/"><span class="practice-logo" aria-hidden="true">P</span><span class="practice-brand-text">PTA 刷题</span></a>
       <span class="ps-name" id="ps-name"></span>
       <nav class="practice-menu" aria-label="主导航">
-        <a id="nav-problems" class="nav-primary" href="/?page=problems">题库管理</a>
+        <a id="nav-home" class="nav-primary" href="/"><svg class="icon"><use href="#pat-home"/></svg><span>首页</span></a>
+        <a id="nav-problems" class="nav-primary" href="/?page=problems"><svg class="icon"><use href="#pat-book"/></svg><span>题库管理</span></a>
         <span class="nav-secondary">
-          <a id="nav-submissions" class="nav-muted" href="/?page=submissions">提交记录</a>
-          <a id="nav-rankings" class="nav-muted" href="/?page=rankings">排名</a>
+          <a id="nav-submissions" class="nav-muted" href="/?page=submissions"><svg class="icon"><use href="#pat-history"/></svg><span>提交记录</span></a>
+          <a id="nav-rankings" class="nav-muted" href="/?page=rankings"><svg class="icon"><use href="#pat-trophy"/></svg><span>排名</span></a>
         </span>
       </nav>
-      <button id="cloud-account-button" class="btn ghost account-button" type="button" hidden>登录</button>
+      <div class="sidebar-account-wrap">
+        <p class="sidebar-account-note">账号中心 · 云端同步</p>
+        <button id="cloud-account-button" class="btn ghost account-button" type="button" hidden>登录</button>
+      </div>
     </div>
   </header>
 
@@ -165,9 +174,23 @@
     <p id="cloud-auth-note" class="account-subtitle" hidden>使用管理员分配的账号，继续你的学习进度。</p>
     <form id="cloud-auth-form" hidden>
       <label for="cloud-auth-email">邮箱</label>
-      <input id="cloud-auth-email" autofocus type="email" name="email" placeholder="name@example.com" autocomplete="username" required>
+      <div class="account-input-wrap is-mail">
+        <span class="account-field-icon is-mail" aria-hidden="true">
+          <img src="/assets/modao/mail-box.svg" alt="" class="icon-mail-box">
+          <img src="/assets/modao/mail-flap.svg" alt="" class="icon-mail-flap">
+        </span>
+        <input id="cloud-auth-email" autofocus type="email" name="email" placeholder="name@example.com" autocomplete="username" required>
+      </div>
       <label for="cloud-auth-password">密码</label>
-      <div class="account-password"><input id="cloud-auth-password" type="password" name="password" placeholder="请输入密码" autocomplete="current-password" required><button id="cloud-password-toggle" type="button" aria-label="显示密码" aria-pressed="false">显示</button></div>
+      <div class="account-password">
+        <span class="account-field-icon is-lock" aria-hidden="true">
+          <img src="/assets/modao/lock-shackle.svg" alt="" class="icon-lock-shackle">
+          <img src="/assets/modao/lock-body.svg" alt="" class="icon-lock-body">
+          <img src="/assets/modao/lock-dot.svg" alt="" class="icon-lock-dot">
+        </span>
+        <input id="cloud-auth-password" type="password" name="password" placeholder="请输入密码" autocomplete="current-password" required>
+        <button id="cloud-password-toggle" type="button" aria-label="显示密码" aria-pressed="false">显示</button>
+      </div>
       <button class="btn primary account-submit" id="cloud-login-submit" type="submit" value="login">登录并继续</button>
       <button class="btn" id="cloud-auth-register" type="submit" value="register" hidden>注册账号</button>
       <p class="account-help">账号开通或密码重置，请联系管理员。</p>
@@ -206,6 +229,6 @@
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="/app.js?v=login-required-20261126"></script>
+<script type="module" src="/app.js?v=modao-20261126"></script>
 </body>
 </html>

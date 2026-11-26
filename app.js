@@ -969,9 +969,9 @@ function renderAnswerProgress(container, problems, index) {
       <nav class="answer-progress-links" aria-label="题号导航">${links}</nav>
     </div>
   </details>
-    <span>第 ${index + 1} / ${problems.length} 题</span>
+    <span class="answer-progress-pill">第 ${index + 1} / ${problems.length} 题</span>
     ${progressBar(completed, problems.length)}
-    <span>已作答 ${completed} / ${problems.length}</span>`
+    <span class="answer-progress-done">已作答 ${completed} / ${problems.length}</span>`
   if (menuWasOpen) container.querySelector(".answer-progress-links").scrollTop = scrollTop
 }
 
@@ -1024,6 +1024,11 @@ async function loadPracticeHome() {
       [`${accuracy}%`, "正确率", "rate"],
       [remain, "未作答", "remain"],
     ]
+    const otherDone = Math.max(0, all.done - all.correct - all.wrong)
+    const pCorrect = problems.length ? (all.correct / problems.length * 100) : 0
+    const pWrong = problems.length ? ((all.correct + all.wrong) / problems.length * 100) : 0
+    const pDone = problems.length ? ((all.correct + all.wrong + otherDone) / problems.length * 100) : 0
+    const deckIcons = { "": "ALL", wrong: "!", TRUE_FALSE: "T/F", SINGLE_CHOICE: "A", MULTIPLE_CHOICE: "A+", PROGRAM_FILL_IN: "{}", PROGRAMMING: "</>", IMPORTED_REVIEW: "?" }
     const deck = (title, items, scope, action) => {
       const { done } = practiceProgress(items)
       const first = scope === "wrong" ? items[0] : items.find(p => !hasPracticeAnswer(p)) || items[0]
@@ -1031,6 +1036,7 @@ async function loadPracticeHome() {
       const wrongCard = scope === "wrong" && items.length ? " is-wrong" : ""
       return `<section class="practice-card practice-deck${wrongCard}">
         <div class="practice-deck-head">
+          <span class="practice-deck-icon" aria-hidden="true">${deckIcons[scope] || "#"}</span>
           <h3>${title}</h3>
           <span class="practice-deck-rate">${scope === "wrong" ? `${items.length} 题` : `${rate}%`}</span>
         </div>
@@ -1047,19 +1053,52 @@ async function loadPracticeHome() {
     }).join("")
     $("page-status").textContent = ""
     $("page-body").innerHTML = `
-      <section class="practice-card practice-hero">
-        <div class="practice-hero-main">
-          <h1>开始刷题</h1>
-          <p class="practice-hero-meta">Java 题库共 ${problems.length} 道题 · ${chapterCount} 个章节 · 总完成度 <strong>${overallProgress}%</strong></p>
-          <div class="practice-hero-progress">${progressBar(all.done, problems.length)}</div>
-        </div>
-        <div class="practice-hero-actions">
-          ${nextTodo ? `<a class="btn primary" href="${practiceLink(nextTodo, "")}">${all.done ? "继续刷题" : "开始刷题"}</a>` : ""}
-          ${wrong.length ? `<a class="btn soft-danger" href="${practiceLink(wrong[0], "wrong")}">重做错题 (${wrong.length})</a>` : ""}
+      <section class="practice-dashboard">
+        <section class="practice-card practice-perf-card">
+          <div class="practice-perf-head">
+            <h1>刷题表现</h1>
+            <span class="practice-perf-sub">${chapterCount} 个章节 · ${problems.length} 题</span>
+          </div>
+          <div class="practice-perf-body">
+            <div class="practice-donut" style="--p-correct:${pCorrect.toFixed(1)}%;--p-done:${pDone.toFixed(1)}%" role="img" aria-label="刷题总进度 ${overallProgress}%">
+              <div class="practice-donut-hole">
+                <strong>${overallProgress}%</strong>
+                <span>总完成度</span>
+              </div>
+            </div>
+            <div class="practice-perf-legend">
+              <div class="practice-legend-row"><i class="is-correct" aria-hidden="true"></i><span>答对 / 已完成</span><strong>${all.correct + otherDone}</strong></div>
+              <div class="practice-legend-row"><i class="is-wrong" aria-hidden="true"></i><span>待复习错题</span><strong>${all.wrong}</strong></div>
+              <div class="practice-legend-row"><i class="is-remain" aria-hidden="true"></i><span>未作答</span><strong>${remain}</strong></div>
+            </div>
+          </div>
+          <section class="practice-stats" aria-label="练习统计">${stats.map(([value, label, color]) => `
+            <div class="practice-stat ${color}"><strong>${value}</strong><span>${label}</span></div>`).join("")}</section>
+        </section>
+        <div class="practice-quick-col">
+          <section class="practice-card practice-featured-card">
+            <div class="practice-featured-copy">
+              <span class="practice-featured-eyebrow">JAVA PRACTICE</span>
+              <h2>${all.done ? "继续刷题" : "开始刷题"}</h2>
+              <p>共 ${problems.length} 道题，已作答 ${all.done} 道</p>
+              <div class="practice-featured-actions">
+                ${nextTodo ? `<a class="practice-featured-btn" href="${practiceLink(nextTodo, "")}">${all.done ? "继续练习" : "立即开始"} →</a>` : ""}
+              </div>
+            </div>
+            <div class="practice-ring-badge" style="--p-total:${overallProgress}%" aria-hidden="true"><span>${overallProgress}%</span></div>
+          </section>
+          <section class="practice-card practice-wrong-card">
+            <div class="practice-wrong-main">
+              <span class="practice-wrong-icon" aria-hidden="true">!</span>
+              <div>
+                <h3>错题复习</h3>
+                <p>${wrong.length ? `当前有 ${wrong.length} 道错题待巩固` : "暂无错题，保持得不错"}</p>
+              </div>
+            </div>
+            ${wrong.length ? `<a class="btn soft-danger" href="${practiceLink(wrong[0], "wrong")}">重做错题 →</a>` : '<span class="practice-muted">已清零</span>'}
+          </section>
         </div>
       </section>
-      <section class="practice-stats" aria-label="练习统计">${stats.map(([value, label, color]) => `
-        <div class="practice-card practice-stat ${color}"><strong>${value}</strong><span>${label}</span></div>`).join("")}</section>
       <section class="practice-card practice-browser" aria-labelledby="practice-browser-title">
         <div class="practice-browser-head">
           <h2 id="practice-browser-title">查找题目</h2>
